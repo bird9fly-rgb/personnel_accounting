@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load mptt_tags %}
+
+{% block title %}Структура підрозділів - АСООС 'ОБРІГ'{% endblock %}
+
+{% block content %}
+<div class="bg-white p-6 rounded-lg shadow-lg">
+    <h1 class="text-3xl font-bold mb-6 text-gray-800">Структура підрозділів</h1>
+
+    <ul class="list-none p-0">
+        {% recursetree units %}
+            <li class="p-2 rounded {% if not node.is_leaf_node %}mb-2{% endif %}">
+                <a href="{% url 'staffing:unit-detail' node.pk %}" class="text-blue-600 hover:underline font-semibold">
+                    {{ node.name }}
+                </a>
+                {% if not node.is_leaf_node %}
+                    <ul class="list-none pl-6 mt-2 border-l-2 border-gray-200">
+                        {{ children }}
+                    </ul>
+                {% endif %}
+            </li>
+        {% endrecursetree %}
+    </ul>
+</div>
+{% endblock %}

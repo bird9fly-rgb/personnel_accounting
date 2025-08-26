@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Список особового складу - АСООС 'ОБРІГ'{% endblock %}
+
+{% block content %}
+<div class="bg-white p-6 rounded-lg shadow-lg">
+    <h1 class="text-3xl font-bold mb-6 text-gray-800">Список особового складу</h1>
+
+    <div class="overflow-x-auto">
+        <table class="min-w-full bg-white">
+            <thead class="bg-gray-800 text-white">
+                <tr>
+                    <th class="py-3 px-4 uppercase font-semibold text-sm text-left">ПІБ</th>
+                    <th class="py-3 px-4 uppercase font-semibold text-sm text-left">Звання</th>
+                    <th class="py-3 px-4 uppercase font-semibold text-sm text-left">Посада</th>
+                    <th class="py-3 px-4 uppercase font-semibold text-sm text-left">Підрозділ</th>
+                </tr>
+            </thead>
+            <tbody class="text-gray-700">
+                {% for serviceman in servicemen %}
+                <tr class="hover:bg-gray-100 border-b">
+                    <td class="py-3 px-4">
+                        <a href="{% url 'personnel:serviceman-detail' serviceman.pk %}" class="text-blue-600 hover:underline">
+                            {{ serviceman.full_name }}
+                        </a>
+                    </td>
+                    <td class="py-3 px-4">{{ serviceman.rank }}</td>
+                    <td class="py-3 px-4">{{ serviceman.position.name|default:"Не призначено" }}</td>
+                    <td class="py-3 px-4">{{ serviceman.position.unit.name|default:"N/A" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center py-4">Немає даних про особовий склад.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

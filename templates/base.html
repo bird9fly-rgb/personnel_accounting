@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}АСООС 'ОБРІГ'{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+    <nav class="bg-gray-800 text-white p-4 shadow-md">
+        <div class="container mx-auto flex justify-between items-center">
+            <a href="{% url 'personnel:serviceman-list' %}" class="text-xl font-bold">АСООС 'ОБРІГ'</a>
+            <div>
+                <a href="{% url 'personnel:serviceman-list' %}" class="px-3 py-2 rounded hover:bg-gray-700">Особовий склад</a>
+                <a href="{% url 'staffing:unit-list' %}" class="px-3 py-2 rounded hover:bg-gray-700">Підрозділи</a>
+                <a href="/admin/" class="px-3 py-2 rounded hover:bg-gray-700">Адмін-панель</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto mt-8 p-4">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <footer class="bg-gray-800 text-white text-center p-4 mt-8">
+        <p>&copy; 2025 Міністерство Оборони України. Всі права захищено.</p>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,8 @@
+Django>=5.0
+psycopg2-binary
+python-decouple
+django-mptt
+django-crispy-forms
+crispy-tailwind
+django-extensions
+Pillow>=10.0
