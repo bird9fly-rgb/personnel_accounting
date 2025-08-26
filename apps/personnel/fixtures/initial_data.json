@@ -1,0 +1,300 @@
+// apps/personnel/fixtures/initial_data.json
+// Використання: python manage.py loaddata apps/personnel/fixtures/initial_data.json
+[
+  {
+    "model": "personnel.rank",
+    "pk": 1,
+    "fields": {
+      "name": "Солдат",
+      "order": 1
+    }
+  },
+  {
+    "model": "personnel.rank",
+    "pk": 2,
+    "fields": {
+      "name": "Старший солдат",
+      "order": 2
+    }
+  },
+  {
+    "model": "personnel.rank",
+    "pk": 3,
+    "fields": {
+      "name": "Молодший сержант",
+      "order": 3
+    }
+  },
+  {
+    "model": "personnel.rank",
+    "pk": 4,
+    "fields": {
+      "name": "Сержант",
+      "order": 4
+    }
+  },
+  {
+    "model": "personnel.rank",
+    "pk": 5,
+    "fields": {
+      "name": "Старший сержант",
+      "order": 5
+    }
+  },
+  {
+    "model": "personnel.rank",
+    "pk": 6,
+    "fields": {
+      "name": "Головний сержант",
+      "order": 6
+    }
+  },
+  {
+    "model": "personnel.rank",
+    "pk": 7,
+    "fields": {
+      "name": "Штаб-сержант",
+      "order": 7
+    }
+  },
+  {
+    "model": "personnel.rank",
+    "pk": 8,
+    "fields": {
+      "name": "Майстер-сержант",
+      "order": 8
+    }
+  },
+  {
+    "model": "personnel.rank",
+    "pk": 9,
+    "fields": {
+      "name": "Старший майстер-сержант",
+      "order": 9
+    }
+  },
+  {
+    "model": "personnel.rank",
+    "pk": 10,
+    "fields": {
+      "name": "Головний майстер-сержант",
+      "order": 10
+    }
+  },
+  {
+    "model": "personnel.rank",
+    "pk": 11,
+    "fields": {
+      "name": "Молодший лейтенант",
+      "order": 11
+    }
+  },
+  {
+    "model": "personnel.rank",
+    "pk": 12,
+    "fields": {
+      "name": "Лейтенант",
+      "order": 12
+    }
+  },
+  {
+    "model": "personnel.rank",
+    "pk": 13,
+    "fields": {
+      "name": "Старший лейтенант",
+      "order": 13
+    }
+  },
+  {
+    "model": "personnel.rank",
+    "pk": 14,
+    "fields": {
+      "name": "Капітан",
+      "order": 14
+    }
+  },
+  {
+    "model": "personnel.rank",
+    "pk": 15,
+    "fields": {
+      "name": "Майор",
+      "order": 15
+    }
+  },
+  {
+    "model": "personnel.rank",
+    "pk": 16,
+    "fields": {
+      "name": "Підполковник",
+      "order": 16
+    }
+  },
+  {
+    "model": "personnel.rank",
+    "pk": 17,
+    "fields": {
+      "name": "Полковник",
+      "order": 17
+    }
+  },
+  {
+    "model": "staffing.militaryspecialty",
+    "pk": 1,
+    "fields": {
+      "code": "100100",
+      "name": "Стрілець"
+    }
+  },
+  {
+    "model": "staffing.militaryspecialty",
+    "pk": 2,
+    "fields": {
+      "code": "100101",
+      "name": "Кулеметник"
+    }
+  },
+  {
+    "model": "staffing.militaryspecialty",
+    "pk": 3,
+    "fields": {
+      "code": "100102",
+      "name": "Гранатометник"
+    }
+  },
+  {
+    "model": "staffing.militaryspecialty",
+    "pk": 4,
+    "fields": {
+      "code": "100103",
+      "name": "Снайпер"
+    }
+  },
+  {
+    "model": "staffing.militaryspecialty",
+    "pk": 5,
+    "fields": {
+      "code": "100200",
+      "name": "Командир відділення"
+    }
+  },
+  {
+    "model": "staffing.militaryspecialty",
+    "pk": 6,
+    "fields": {
+      "code": "100300",
+      "name": "Командир взводу"
+    }
+  },
+  {
+    "model": "staffing.militaryspecialty",
+    "pk": 7,
+    "fields": {
+      "code": "100400",
+      "name": "Командир роти"
+    }
+  },
+  {
+    "model": "staffing.militaryspecialty",
+    "pk": 8,
+    "fields": {
+      "code": "100500",
+      "name": "Командир батальйону"
+    }
+  },
+  {
+    "model": "staffing.militaryspecialty",
+    "pk": 9,
+    "fields": {
+      "code": "200100",
+      "name": "Механік-водій БМП"
+    }
+  },
+  {
+    "model": "staffing.militaryspecialty",
+    "pk": 10,
+    "fields": {
+      "code": "200200",
+      "name": "Навідник-оператор"
+    }
+  },
+  {
+    "model": "staffing.militaryspecialty",
+    "pk": 11,
+    "fields": {
+      "code": "300100",
+      "name": "Зв'язківець"
+    }
+  },
+  {
+    "model": "staffing.militaryspecialty",
+    "pk": 12,
+    "fields": {
+      "code": "300200",
+      "name": "Радіотелефоніст"
+    }
+  },
+  {
+    "model": "staffing.militaryspecialty",
+    "pk": 13,
+    "fields": {
+      "code": "400100",
+      "name": "Санітарний інструктор"
+    }
+  },
+  {
+    "model": "staffing.militaryspecialty",
+    "pk": 14,
+    "fields": {
+      "code": "400200",
+      "name": "Фельдшер"
+    }
+  },
+  {
+    "model": "staffing.militaryspecialty",
+    "pk": 15,
+    "fields": {
+      "code": "500100",
+      "name": "Кухар"
+    }
+  },
+  {
+    "model": "staffing.militaryspecialty",
+    "pk": 16,
+    "fields": {
+      "code": "500200",
+      "name": "Водій"
+    }
+  },
+  {
+    "model": "staffing.militaryspecialty",
+    "pk": 17,
+    "fields": {
+      "code": "600100",
+      "name": "Інженер-сапер"
+    }
+  },
+  {
+    "model": "staffing.militaryspecialty",
+    "pk": 18,
+    "fields": {
+      "code": "700100",
+      "name": "Артилерист"
+    }
+  },
+  {
+    "model": "staffing.militaryspecialty",
+    "pk": 19,
+    "fields": {
+      "code": "800100",
+      "name": "Оператор БПЛА"
+    }
+  },
+  {
+    "model": "staffing.militaryspecialty",
+    "pk": 20,
+    "fields": {
+      "code": "900100",
+      "name": "Штабний офіцер"
+    }
+  }
+]
