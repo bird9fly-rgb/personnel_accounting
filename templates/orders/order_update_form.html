@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Редагування наказу №{{ object.order_number }}{% endblock %}
+
+{% block content %}
+<div class="bg-white p-8 rounded-lg shadow-lg max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6 text-gray-800">Редагування наказу №{{ object.order_number }}</h1>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold mb-4 text-gray-700">Основна інформація</h2>
+            {{ form|crispy }}
+        </div>
+
+        <div>
+            <h2 class="text-2xl font-semibold mb-4 text-gray-700">Дії за наказом</h2>
+            {{ action_formset.management_form }}
+
+            <div class="space-y-6" id="action-formset-container">
+            {% for action_form in action_formset %}
+                <div class="p-4 border rounded-md {% if action_form.instance.pk %}bg-gray-50{% else %}bg-green-50{% endif %} formset-row">
+                    <h3 class="font-semibold mb-2">Дія #{{ forloop.counter }}</h3>
+                    {% if action_form.instance.pk %}{{ action_form.id }}{% endif %}
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {{ action_form.personnel|as_crispy_field }}
+                        {{ action_form.action_type|as_crispy_field }}
+                    </div>
+
+                    <div class="mt-4 space-y-4">
+                        <div class="action-field-wrapper" data-action-type="APPOINT TRANSFER">
+                             {{ action_form.new_position|as_crispy_field }}
+                        </div>
+                        <div class="action-field-wrapper" data-action-type="PROMOTE">
+                            {{ action_form.new_rank|as_crispy_field }}
+                        </div>
+                        <div class="action-field-wrapper" data-action-type="DISMISS">
+                            {{ action_form.dismissal_reason|as_crispy_field }}
+                        </div>
+                    </div>
+
+                    {% if action_form.can_delete %}
+                        <div class="mt-2 text-right">
+                           {{ action_form.DELETE }} <label for="{{ action_form.DELETE.id_for_label }}" class="text-red-600 text-sm cursor-pointer hover:underline">Видалити дію</label>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+            </div>
+        </div>
+
+        <div class="mt-8 flex justify-end">
+            <a href="{% url 'orders:order-detail' object.pk %}" class="text-gray-600 py-2 px-4 mr-2">Скасувати</a>
+            <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700">
+                Зберегти зміни
+            </button>
+        </div>
+    </form>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('action-formset-container');
+
+    function toggleActionFields(formRow) {
+        const actionTypeSelect = formRow.querySelector('.action-type-select');
+        const selectedAction = actionTypeSelect.value;
+
+        const fieldWrappers = formRow.querySelectorAll('.action-field-wrapper');
+
+        fieldWrappers.forEach(wrapper => {
+            const supportedActions = wrapper.dataset.actionType.split(' ');
+            if (supportedActions.includes(selectedAction)) {
+                wrapper.style.display = 'block';
+            } else {
+                wrapper.style.display = 'none';
+            }
+        });
+    }
+
+    // Застосувати логіку до існуючих форм при завантаженні сторінки
+    container.querySelectorAll('.formset-row').forEach(toggleActionFields);
+
+    // Застосувати логіку при зміні типу дії
+    container.addEventListener('change', function(event) {
+        if (event.target.classList.contains('action-type-select')) {
+            const formRow = event.target.closest('.formset-row');
+            toggleActionFields(formRow);
+        }
+    });
+});
+</script>
+{% endblock %}
+{% endblock %}

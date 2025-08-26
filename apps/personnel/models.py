@@ -1,3 +1,4 @@
+# apps/personnel/models.py
 from django.db import models
 from django.conf import settings
 
@@ -16,6 +17,16 @@ class Rank(models.Model):
 
 class Serviceman(models.Model):
     """Військовослужбовець - центральна модель персонального обліку"""
+
+    class Status(models.TextChoices):
+        ON_DUTY = 'ON_DUTY', 'На службі'
+        ON_LEAVE = 'ON_LEAVE', 'У відпустці'
+        SICK_LEAVE = 'SICK_LEAVE', 'На лікуванні'
+        AWOL = 'AWOL', 'СЗЧ' # Самовільне залишення частини
+        DISMISSED = 'DISMISSED', 'Звільнено'
+        KIA = 'KIA', 'Загинув' # Killed In Action
+        MIA = 'MIA', 'Зник безвісти' # Missing In Action
+
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -34,6 +45,13 @@ class Serviceman(models.Model):
     last_name = models.CharField("Прізвище", max_length=100)
     first_name = models.CharField("Ім'я", max_length=100)
     middle_name = models.CharField("По батькові", max_length=100, blank=True)
+
+    status = models.CharField(
+        "Статус",
+        max_length=20,
+        choices=Status.choices,
+        default=Status.ON_DUTY
+    )
 
     date_of_birth = models.DateField("Дата народження")
     place_of_birth = models.CharField("Місце народження", max_length=255)
@@ -69,10 +87,12 @@ class Contract(models.Model):
 class ServiceHistoryEvent(models.Model):
     """Журнал подій в історії служби"""
     class EventType(models.TextChoices):
-        APPOINTMENT = 'APPOINTMENT', 'Призначення'
+        ENLISTMENT = 'ENLISTMENT', 'Зарахування на службу'
+        APPOINTMENT = 'APPOINTMENT', 'Призначення на посаду'
         TRANSFER = 'TRANSFER', 'Переведення'
         PROMOTION = 'PROMOTION', 'Підвищення у званні'
         DISMISSAL = 'DISMISSAL', 'Звільнення'
+        DEATH = 'DEATH', 'Загибель/Смерть'
 
     serviceman = models.ForeignKey(Serviceman, on_delete=models.CASCADE, related_name='service_history')
     event_type = models.CharField("Тип події", max_length=20, choices=EventType.choices)
@@ -84,3 +104,23 @@ class ServiceHistoryEvent(models.Model):
         verbose_name = "Подія в історії служби"
         verbose_name_plural = "Історія служби"
         ordering = ['-event_date']
+
+
+class PositionHistory(models.Model):
+    """
+    Історія перебування військовослужбовця на посадах.
+    Забезпечує повний аудиторський слід кар'єрного шляху.
+    """
+    serviceman = models.ForeignKey(Serviceman, on_delete=models.CASCADE, related_name='position_history', verbose_name="Військовослужбовець")
+    position = models.ForeignKey('staffing.Position', on_delete=models.PROTECT, verbose_name="Посада")
+    start_date = models.DateField("Дата призначення")
+    end_date = models.DateField("Дата звільнення з посади", null=True, blank=True)
+    order_reference = models.CharField("Посилання на наказ", max_length=255)
+
+    class Meta:
+        verbose_name = "Історія посад"
+        verbose_name_plural = "Історії посад"
+        ordering = ['-start_date']
+
+    def __str__(self):
+        return f"{self.serviceman} - {self.position.name} ({self.start_date})"

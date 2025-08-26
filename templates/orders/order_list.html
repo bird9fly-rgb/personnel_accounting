@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Накази - АСООС 'ОБРІГ'{% endblock %}
+
+{% block content %}
+<div class="bg-white p-6 rounded-lg shadow-lg">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-800">Список наказів</h1>
+        <a href="{% url 'orders:order-create' %}" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+            Створити новий наказ
+        </a>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="min-w-full bg-white">
+            <thead class="bg-gray-800 text-white">
+                <tr>
+                    <th class="py-3 px-4 uppercase font-semibold text-sm text-left">Номер</th>
+                    <th class="py-3 px-4 uppercase font-semibold text-sm text-left">Дата</th>
+                    <th class="py-3 px-4 uppercase font-semibold text-sm text-left">Тип</th>
+                    <th class="py-3 px-4 uppercase font-semibold text-sm text-left">Статус</th>
+                    <th class="py-3 px-4 uppercase font-semibold text-sm text-left">Дії</th>
+                </tr>
+            </thead>
+            <tbody class="text-gray-700">
+                {% for order in orders %}
+                <tr class="hover:bg-gray-100 border-b">
+                    <td class="py-3 px-4">
+                        <a href="{% url 'orders:order-detail' order.pk %}" class="text-blue-600 hover:underline font-bold">
+                            {{ order.order_number }}
+                        </a>
+                    </td>
+                    <td class="py-3 px-4">{{ order.order_date|date:"d.m.Y" }}</td>
+                    <td class="py-3 px-4">{{ order.get_order_type_display }}</td>
+                    <td class="py-3 px-4"><span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-200 text-gray-800">{{ order.get_status_display }}</span></td>
+                    <td class="py-3 px-4">
+                        <a href="{% url 'orders:order-update' order.pk %}" class="text-indigo-600 hover:underline">Редагувати</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center py-4">Немає жодного наказу.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
