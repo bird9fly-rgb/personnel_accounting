@@ -44,6 +44,8 @@ project_files = {
     django-mptt
     django-crispy-forms
     crispy-tailwind
+    django-extensions
+    Pillow>=10.0
     """,
     ".gitignore": """
     # Python
@@ -75,6 +77,11 @@ project_files = {
     env/
     .venv/
 
+    # Docker
+    .dockerignore
+    docker-compose.yml.local
+    .postgres_data/
+
     # Django
     *.log
     local_settings.py
@@ -94,12 +101,102 @@ project_files = {
     SECRET_KEY=your-super-secret-key-goes-here
     DEBUG=True
 
-    # Database settings
+    # Database settings (for Docker container and local Django)
     DB_NAME=personnel_db
     DB_USER=personnel_user
     DB_PASSWORD=strongpassword
     DB_HOST=127.0.0.1
     DB_PORT=5432
+    """,
+    "docker-compose.yml": """
+    version: '3.8'
+
+    services:
+      db:
+        image: postgres:17-alpine
+        container_name: asoos_postgres_db
+        restart: always
+        volumes:
+          - ./.postgres_data:/var/lib/postgresql/data/
+        environment:
+          POSTGRES_DB: ${DB_NAME}
+          POSTGRES_USER: ${DB_USER}
+          POSTGRES_PASSWORD: ${DB_PASSWORD}
+        ports:
+          - "${DB_PORT}:5432"
+        healthcheck:
+          test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+          interval: 5s
+          timeout: 5s
+          retries: 5
+    """,
+    "Makefile": """
+    .PHONY: help up down logs install run migrate makemigrations superuser shell test fresh-start
+
+    # Використовуємо .env файл для змінних
+    include .env
+    export
+
+    help:
+    	@echo "Доступні команди для управління проєктом АСООС 'ОБРІГ':"
+    	@echo ""
+    	@echo "  make up             - Запустити контейнер з базою даних у фоновому режимі."
+    	@echo "  make down           - Зупинити контейнер з базою даних."
+    	@echo "  make logs           - Переглянути логи бази даних в реальному часі."
+    	@echo "  make install        - Встановити залежності Python з requirements.txt."
+    	@echo "  make run            - Запустити локальний сервер розробки Django."
+    	@echo "  make migrate        - Застосувати міграції до бази даних."
+    	@echo "  make makemigrations - Створити нові файли міграцій на основі змін у моделях."
+    	@echo "  make superuser      - Створити нового суперкористувача (адміністратора)."
+    	@echo "  make shell          - Запустити розширену оболонку Django (shell_plus)."
+    	@echo "  make test           - Запустити тести для проєкту."
+    	@echo "  make fresh-start    - 🔥 ПОВНІСТЮ ВИДАЛИТИ БАЗУ ДАНИХ та почати з нуля."
+    	@echo ""
+
+    up:
+    	@echo "🚀 Запускаю контейнер з базою даних PostgreSQL..."
+    	docker-compose up -d
+
+    down:
+    	@echo "🛑 Зупиняю контейнер з базою даних..."
+    	docker-compose down
+
+    logs:
+    	@echo "📜 Переглядаю логи бази даних..."
+    	docker-compose logs -f db
+
+    install:
+    	@echo "📦 Встановлюю залежності Python..."
+    	pip install -r requirements.txt
+
+    run:
+    	@echo "🌐 Запускаю сервер розробки Django на http://127.0.0.1:8000/"
+    	python manage.py runserver
+
+    migrate:
+    	@echo "Applying database migrations..."
+    	python manage.py migrate
+
+    makemigrations:
+    	@echo "Creating new migrations..."
+    	python manage.py makemigrations
+
+    superuser:
+    	@echo "Creating superuser..."
+    	python manage.py createsuperuser
+
+    shell:
+    	@echo "Starting Django shell..."
+    	python manage.py shell_plus --print-sql
+
+    test:
+    	@echo "Running tests..."
+    	python manage.py test
+
+    fresh-start:
+    	@echo "🔥 Повністю видаляю дані бази даних..."
+    	docker-compose down -v
+    	@echo "✅ Дані бази видалено. Тепер можна почати з 'make up'."
     """,
 
     # --- Основний конфігураційний пакет проєкту ---
@@ -121,12 +218,17 @@ project_files = {
     f"{PROJECT_NAME}/urls.py": """
     from django.contrib import admin
     from django.urls import path, include
+    from django.conf import settings
+    from django.conf.urls.static import static
 
     urlpatterns = [
         path('admin/', admin.site.urls),
         path('', include('apps.personnel.urls')),
         path('staffing/', include('apps.staffing.urls')),
     ]
+
+    if settings.DEBUG:
+        urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     """,
 
     # --- Налаштування проєкту ---
@@ -154,14 +256,15 @@ project_files = {
         'mptt',
         'crispy_forms',
         'crispy_tailwind',
+        'django_extensions',
 
         # Local apps
-        'apps.core',
-        'apps.users',
-        'apps.staffing',
-        'apps.personnel',
-        'apps.reporting',
-        'apps.auditing',
+        'apps.core.apps.CoreConfig',
+        'apps.users.apps.UsersConfig',
+        'apps.staffing.apps.StaffingConfig',
+        'apps.personnel.apps.PersonnelConfig',
+        'apps.reporting.apps.ReportingConfig',
+        'apps.auditing.apps.AuditingConfig',
     ]
 
     MIDDLEWARE = [
@@ -208,7 +311,7 @@ project_files = {
     ]
 
     LANGUAGE_CODE = 'uk-ua'
-    TIME_ZONE = 'Europe/Kiev'
+    TIME_ZONE = 'Europe/Kyiv'
     USE_I18N = True
     USE_TZ = True
 
@@ -242,8 +345,17 @@ project_files = {
     }
     """,
 
+    # --- Додаток 'core' ---
+    f"{APPS_DIR}/core/apps.py": """
+    from django.apps import AppConfig
+
+    class CoreConfig(AppConfig):
+        default_auto_field = 'django.db.models.BigAutoField'
+        name = 'apps.core'
+        verbose_name = 'Основні компоненти'
+    """,
+
     # --- Додаток 'users' ---
-    f"{APPS_DIR}/users/__init__.py": "",
     f"{APPS_DIR}/users/apps.py": """
     from django.apps import AppConfig
 
@@ -257,11 +369,14 @@ project_files = {
     from django.db import models
 
     class User(AbstractUser):
-        # Тут можна додати додаткові поля для користувача, якщо потрібно
         middle_name = models.CharField("По батькові", max_length=150, blank=True)
 
+        def get_full_name(self):
+            full_name = '%s %s %s' % (self.last_name, self.first_name, self.middle_name)
+            return full_name.strip()
+
         def __str__(self):
-            return self.get_full_name()
+            return self.username
     """,
     f"{APPS_DIR}/users/admin.py": """
     from django.contrib import admin
@@ -278,7 +393,6 @@ project_files = {
     """,
 
     # --- Додаток 'staffing' ---
-    f"{APPS_DIR}/staffing/__init__.py": "",
     f"{APPS_DIR}/staffing/apps.py": """
     from django.apps import AppConfig
 
@@ -328,7 +442,7 @@ project_files = {
 
     class Position(models.Model):
         \"\"\"Посада згідно зі штатом\"\"\"
-        unit = models.ForeignKey(Unit, on_delete=models.CASCADE, verbose_name="Підрозділ")
+        unit = models.ForeignKey(Unit, on_delete=models.CASCADE, verbose_name="Підрозділ", related_name="positions")
         position_index = models.CharField("Індекс посади", max_length=50, unique=True)
         name = models.CharField("Найменування посади", max_length=255)
         category = models.CharField("Штатно-посадова категорія", max_length=100)
@@ -338,18 +452,20 @@ project_files = {
         class Meta:
             verbose_name = "Посада"
             verbose_name_plural = "Посади"
+            ordering = ['name']
 
         def __str__(self):
             return f"{self.name} ({self.unit.name})"
     """,
     f"{APPS_DIR}/staffing/admin.py": """
     from django.contrib import admin
-    from mptt.admin import MPTTModelAdmin
+    from mptt.admin import DraggableMPTTAdmin
     from .models import Unit, MilitarySpecialty, Position
 
     @admin.register(Unit)
-    class UnitAdmin(MPTTModelAdmin):
-        list_display = ('name', 'parent')
+    class UnitAdmin(DraggableMPTTAdmin):
+        list_display = ('tree_actions', 'indented_title')
+        list_display_links = ('indented_title',)
         search_fields = ('name',)
 
     @admin.register(MilitarySpecialty)
@@ -361,7 +477,7 @@ project_files = {
     class PositionAdmin(admin.ModelAdmin):
         list_display = ('name', 'unit', 'position_index', 'category', 'specialty')
         list_filter = ('unit', 'specialty', 'category')
-        search_fields = ('name', 'position_index')
+        search_fields = ('name', 'position_index', 'unit__name')
         autocomplete_fields = ('unit', 'specialty')
     """,
     f"{APPS_DIR}/staffing/views.py": """
@@ -391,7 +507,6 @@ project_files = {
     """,
 
     # --- Додаток 'personnel' ---
-    f"{APPS_DIR}/personnel/__init__.py": "",
     f"{APPS_DIR}/personnel/apps.py": """
     from django.apps import AppConfig
 
@@ -504,7 +619,7 @@ project_files = {
     class ServiceHistoryEventInline(admin.TabularInline):
         model = ServiceHistoryEvent
         extra = 1
-        readonly_fields = ('details', 'order_reference')
+        readonly_fields = ('details', 'order_reference', 'event_type', 'event_date')
 
     @admin.register(Serviceman)
     class ServicemanAdmin(admin.ModelAdmin):
@@ -513,6 +628,7 @@ project_files = {
         search_fields = ('last_name', 'first_name', 'tax_id_number')
         autocomplete_fields = ('position', 'user')
         inlines = [ContractInline, ServiceHistoryEventInline]
+        readonly_fields = ('user',)
     """,
     f"{APPS_DIR}/personnel/views.py": """
     from django.views.generic import ListView, DetailView
@@ -544,19 +660,19 @@ project_files = {
     from django.db import transaction
     from .models import Serviceman, ServiceHistoryEvent
     from apps.staffing.models import Position
+    from datetime import date
 
     @transaction.atomic
-    def transfer_serviceman(serviceman: Serviceman, new_position: Position, order_reference: str, event_date):
+    def transfer_serviceman(serviceman: Serviceman, new_position: Position, order_reference: str, event_date: date):
         \"\"\"
         Виконує повний процес переведення військовослужбовця на нову посаду.
         Ця функція є прикладом реалізації бізнес-логіки в сервісному шарі.
         \"\"\"
         old_position = serviceman.position
 
-        # Звільняємо стару посаду, якщо вона була зайнята
-        if old_position:
-            # Логіка для обробки старої посади (можливо, вона стає вакантною)
-            pass
+        # Перевіряємо, чи нова посада не зайнята
+        if hasattr(new_position, 'serviceman') and new_position.serviceman is not None:
+             raise ValueError(f"Посада {new_position} вже зайнята.")
 
         # Призначаємо нову посаду
         serviceman.position = new_position
@@ -580,6 +696,26 @@ project_files = {
         print(f"Військовослужбовця {serviceman} переведено на посаду {new_position}.")
 
         return serviceman
+    """,
+
+    # --- Додаток 'reporting' ---
+    f"{APPS_DIR}/reporting/apps.py": """
+    from django.apps import AppConfig
+
+    class ReportingConfig(AppConfig):
+        default_auto_field = 'django.db.models.BigAutoField'
+        name = 'apps.reporting'
+        verbose_name = 'Звітність та Статистика'
+    """,
+
+    # --- Додаток 'auditing' ---
+    f"{APPS_DIR}/auditing/apps.py": """
+    from django.apps import AppConfig
+
+    class AuditingConfig(AppConfig):
+        default_auto_field = 'django.db.models.BigAutoField'
+        name = 'apps.auditing'
+        verbose_name = 'Аудит та Журналювання'
     """,
 
     # --- Шаблони (Templates) ---
@@ -665,9 +801,9 @@ project_files = {
     {% block content %}
     <div class="bg-white p-8 rounded-lg shadow-lg max-w-4xl mx-auto">
         <div class="flex items-center space-x-6 mb-6">
-            <div class="w-32 h-32 bg-gray-200 rounded-full flex items-center justify-center">
+            <div class="w-32 h-32 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
                 {% if serviceman.photo %}
-                    <img src="{{ serviceman.photo.url }}" alt="Фото" class="w-32 h-32 rounded-full object-cover">
+                    <img src="{{ serviceman.photo.url }}" alt="Фото" class="w-full h-full object-cover">
                 {% else %}
                     <span class="text-gray-500">Фото</span>
                 {% endif %}
@@ -751,7 +887,7 @@ project_files = {
         <div class="mt-8">
             <h2 class="text-2xl font-semibold mb-4 text-gray-700">Штатні посади</h2>
             <div class="space-y-2">
-                {% for position in unit.position_set.all %}
+                {% for position in unit.positions.all %}
                     <div class="bg-gray-50 p-3 rounded-md">
                         <p class="font-semibold">{{ position.name }}</p>
                         <p class="text-sm text-gray-600">Індекс: {{ position.position_index }} | ВОС: {{ position.specialty.code }}</p>
@@ -776,29 +912,31 @@ def create_project_structure():
     """Створює структуру папок та файлів проєкту."""
     print("🚀 Починаю створення проєкту АСООС 'ОБРІГ'...")
 
-    # Створення кореневої папки проєкту та папки для додатків
-    os.makedirs(PROJECT_NAME, exist_ok=True)
-    os.makedirs(APPS_DIR, exist_ok=True)
-    os.makedirs("templates", exist_ok=True)
-    os.makedirs("static", exist_ok=True)
-    os.makedirs("media", exist_ok=True)
+    # Створення кореневих папок
+    base_dirs = [PROJECT_NAME, APPS_DIR, "templates", "static", "media"]
+    for directory in base_dirs:
+        os.makedirs(directory, exist_ok=True)
 
-    # Створення папок для додатків
+    # Створення папок для додатків та базових файлів
     for app_name in APP_NAMES:
         app_path = os.path.join(APPS_DIR, app_name)
         os.makedirs(app_path, exist_ok=True)
-        # Створюємо пусті файли, які не визначені в project_files
-        for empty_file in ["__init__.py", "models.py", "admin.py", "views.py", "urls.py"]:
-            if os.path.join(app_path, empty_file) not in project_files:
-                open(os.path.join(app_path, empty_file), 'a').close()
+        # Створюємо пусті файли __init__.py, якщо вони не визначені
+        if not os.path.exists(os.path.join(app_path, "__init__.py")):
+            open(os.path.join(app_path, "__init__.py"), 'a').close()
+        # Створюємо пусті файли, які можуть знадобитися, але не заповнені
+        for empty_file in ["models.py", "admin.py", "views.py", "urls.py", "services.py"]:
+            full_path = os.path.join(app_path, empty_file)
+            if full_path not in project_files and not os.path.exists(full_path):
+                open(full_path, 'a').close()
 
     # Створення всіх файлів з їхнім вмістом
     for file_path, content in project_files.items():
-        # Створення проміжних директорій, якщо вони не існують
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        dir_path = os.path.dirname(file_path)
+        if dir_path:
+            os.makedirs(dir_path, exist_ok=True)
 
         with open(file_path, 'w', encoding='utf-8') as f:
-            # Використовуємо textwrap.dedent для видалення зайвих відступів
             f.write(textwrap.dedent(content).strip())
         print(f"✅ Створено файл: {file_path}")
 
@@ -808,28 +946,31 @@ def create_project_structure():
 
     print("\n🎉 Структуру проєкту успішно створено!")
     print("=" * 60)
-    print("КРОКИ ДЛЯ ЗАПУСКУ ПРОЄКТУ:")
-    print("1.  Створіть та активуйте віртуальне середовище:")
+    print("✅ ВИПРАВЛЕНИЙ ПОРЯДОК ЗАПУСКУ (з Docker та Make):")
+    print("\n0.  Переконайтесь, що у вас встановлено Docker та Docker Compose.")
+    print("    Якщо виникали помилки, почніть з чистого аркуша: make fresh-start")
+    print("\n1.  Створіть та активуйте віртуальне середовище Python:")
     print("    python -m venv venv")
     print("    source venv/bin/activate  # для Linux/macOS")
     print("    .\\venv\\Scripts\\activate    # для Windows")
-    print("\n2.  Встановіть залежності:")
-    print("    pip install -r requirements.txt")
-    print("\n3.  Налаштуйте змінні оточення:")
-    print("    - Створіть базу даних PostgreSQL (наприклад, 'personnel_db').")
-    print("    - Скопіюйте .env.example в .env:")
-    print("      cp .env.example .env  # для Linux/macOS")
-    print("      copy .env.example .env  # для Windows")
-    print("    - Відредагуйте файл .env, вказавши ваші налаштування для бази даних та SECRET_KEY.")
-    print("\n4.  Застосуйте міграції бази даних:")
-    print("    python manage.py migrate")
-    print("\n5.  Створіть суперкористувача для доступу до адмін-панелі:")
-    print("    python manage.py createsuperuser")
-    print("\n6.  Запустіть сервер для розробки:")
-    print("    python manage.py runserver")
-    print("\n7.  Відкрийте проєкт у вашому браузері:")
+    print("\n2.  Налаштуйте файл .env:")
+    print("    - Скопіюйте .env.example в .env.")
+    print("    - Відредагуйте .env, вказавши надійний SECRET_KEY.")
+    print("\n3.  Запустіть базу даних в Docker:")
+    print("    make up")
+    print("\n4.  Встановіть залежності Python:")
+    print("    make install")
+    print("\n5.  ‼️ ВАЖЛИВО: Створіть файли міграцій:")
+    print("    make makemigrations")
+    print("\n6.  Тепер застосуйте міграції та створіть адміністратора:")
+    print("    make migrate")
+    print("    make superuser")
+    print("\n7.  Запустіть локальний сервер Django:")
+    print("    make run")
+    print("\n8.  Відкрийте проєкт у вашому браузері:")
     print("    - Основна сторінка: http://127.0.0.1:8000/")
     print("    - Адмін-панель: http://127.0.0.1:8000/admin/")
+    print("\n💡 Для перегляду всіх доступних команд, виконайте: make help")
     print("=" * 60)
 
 
