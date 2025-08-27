@@ -1,5 +1,7 @@
 from pathlib import Path
 from decouple import config
+# Додайте цей імпорт на початку файлу
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -29,6 +31,7 @@ INSTALLED_APPS = [
     'apps.personnel.apps.PersonnelConfig',
     'apps.reporting.apps.ReportingConfig',
     'apps.auditing.apps.AuditingConfig',
+    'apps.orders.apps.OrdersConfig',
 ]
 
 MIDDLEWARE = [
@@ -39,6 +42,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'apps.auditing.mixins.AuditingMiddleware',
 ]
 
 ROOT_URLCONF = 'personnel_accounting.urls'

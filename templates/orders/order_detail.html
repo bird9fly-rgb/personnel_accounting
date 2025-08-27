@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Наказ №{{ order.order_number }} - АСООС 'ОБРІГ'{% endblock %}
+
+{% block content %}
+<div class="bg-white p-8 rounded-lg shadow-lg max-w-4xl mx-auto">
+    <div class="flex justify-between items-start mb-6">
+        <div>
+            <h1 class="text-4xl font-bold text-gray-800">Наказ №{{ order.order_number }}</h1>
+            <p class="text-xl text-gray-600">від {{ order.order_date|date:"d F Y" }} р.</p>
+        </div>
+        <a href="{% url 'orders:order-update' order.pk %}" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">
+            Редагувати
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div class="bg-gray-50 p-4 rounded-md">
+            <p><strong>Тип:</strong> {{ order.get_order_type_display }}</p>
+            <p><strong>Статус:</strong> <span class="font-semibold">{{ order.get_status_display }}</span></p>
+        </div>
+        <div class="bg-gray-50 p-4 rounded-md">
+            <p><strong>Ким видано:</strong> {{ order.issuing_authority }}</p>
+            <p><strong>Створив:</strong> {{ order.created_by.get_full_name|default:"Система" }}</p>
+        </div>
+    </div>
+
+    <div class="mb-8">
+        <h2 class="text-2xl font-semibold mb-2 text-gray-700">Текст наказу</h2>
+        <div class="bg-gray-50 p-4 rounded-md prose max-w-none">
+            {{ order.order_text|linebreaksbr|default:"Текст наказу відсутній." }}
+        </div>
+    </div>
+
+    <div>
+        <h2 class="text-2xl font-semibold mb-4 text-gray-700">Дії за наказом</h2>
+        <div class="space-y-3">
+            {% for action in order.actions.all %}
+            <div class="bg-gray-100 p-4 rounded-md">
+                <p class="font-bold">{{ action.get_action_type_display }}: <span class="font-normal">{{ action.personnel.full_name }}</span></p>
+                <p class="text-sm text-gray-600">Деталі: {{ action.details|default:"Не вказано" }}</p>
+            </div>
+            {% empty %}
+            <p class="text-gray-500">До цього наказу ще не додано жодної дії.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

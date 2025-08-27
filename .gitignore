@@ -45,3 +45,5 @@ staticfiles/
 .idea/
 .vscode/
 *.swp
+
+*.db
