@@ -6,3 +6,4 @@ django-crispy-forms
 crispy-tailwind
 django-extensions
 Pillow>=10.0
+pandas
