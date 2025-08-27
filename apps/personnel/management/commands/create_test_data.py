@@ -174,51 +174,52 @@ class Command(BaseCommand):
         """Створення структури підрозділів"""
         self.stdout.write('Створення підрозділів...')
 
-        # Бригада
-        brigade = Unit.objects.create(name='24-та окрема механізована бригада імені короля Данила')
+        # Використовуємо get_or_create, щоб уникнути дублікатів
+        brigade, _ = Unit.objects.get_or_create(name='24-та окрема механізована бригада імені короля Данила',
+                                                parent=None)
 
         # Батальйони
-        battalion_1 = Unit.objects.create(name='1-й механізований батальйон', parent=brigade)
-        battalion_2 = Unit.objects.create(name='2-й механізований батальйон', parent=brigade)
-        battalion_3 = Unit.objects.create(name='3-й механізований батальйон', parent=brigade)
-        tank_battalion = Unit.objects.create(name='Танковий батальйон', parent=brigade)
-        artillery = Unit.objects.create(name='Артилерійський дивізіон', parent=brigade)
-        support = Unit.objects.create(name='Батальйон забезпечення', parent=brigade)
+        battalion_1, _ = Unit.objects.get_or_create(name='1-й механізований батальйон', parent=brigade)
+        battalion_2, _ = Unit.objects.get_or_create(name='2-й механізований батальйон', parent=brigade)
+        battalion_3, _ = Unit.objects.get_or_create(name='3-й механізований батальйон', parent=brigade)
+        tank_battalion, _ = Unit.objects.get_or_create(name='Танковий батальйон', parent=brigade)
+        artillery, _ = Unit.objects.get_or_create(name='Артилерійський дивізіон', parent=brigade)
+        support, _ = Unit.objects.get_or_create(name='Батальйон забезпечення', parent=brigade)
 
         # Роти в 1-му батальйоні
         for i in range(1, 4):
-            company = Unit.objects.create(name=f'{i}-та механізована рота', parent=battalion_1)
+            company, _ = Unit.objects.get_or_create(name=f'{i}-та механізована рота', parent=battalion_1)
             # Взводи в роті
             for j in range(1, 4):
-                platoon = Unit.objects.create(name=f'{j}-й механізований взвод', parent=company)
+                platoon, _ = Unit.objects.get_or_create(name=f'{j}-й механізований взвод', parent=company)
                 # Відділення у взводі
                 for k in range(1, 4):
-                    Unit.objects.create(name=f'{k}-те відділення', parent=platoon)
+                    Unit.objects.get_or_create(name=f'{k}-те відділення', parent=platoon)
 
         # Роти в 2-му батальйоні
         for i in range(1, 4):
-            company = Unit.objects.create(name=f'{i + 3}-та механізована рота', parent=battalion_2)
+            company, _ = Unit.objects.get_or_create(name=f'{i + 3}-та механізована рота', parent=battalion_2)
             for j in range(1, 4):
-                platoon = Unit.objects.create(name=f'{j}-й механізований взвод', parent=company)
+                platoon, _ = Unit.objects.get_or_create(name=f'{j}-й механізований взвод', parent=company)
                 for k in range(1, 4):
-                    Unit.objects.create(name=f'{k}-те відділення', parent=platoon)
+                    Unit.objects.get_or_create(name=f'{k}-те відділення', parent=platoon)
 
         # Танкові роти
         for i in range(1, 3):
-            Unit.objects.create(name=f'{i}-та танкова рота', parent=tank_battalion)
+            Unit.objects.get_or_create(name=f'{i}-та танкова рота', parent=tank_battalion)
 
         # Артилерійські батареї
         for i in range(1, 4):
-            Unit.objects.create(name=f'{i}-та гаубична батарея', parent=artillery)
+            Unit.objects.get_or_create(name=f'{i}-та гаубична батарея', parent=artillery)
 
         # Підрозділи забезпечення
-        Unit.objects.create(name='Рота зв\'язку', parent=support)
-        Unit.objects.create(name='Медична рота', parent=support)
-        Unit.objects.create(name='Рота матеріально-технічного забезпечення', parent=support)
-        Unit.objects.create(name='Інженерна рота', parent=support)
-        Unit.objects.create(name='Розвідувальна рота', parent=brigade)
+        Unit.objects.get_or_create(name='Рота зв\'язку', parent=support)
+        Unit.objects.get_or_create(name='Медична рота', parent=support)
+        Unit.objects.get_or_create(name='Рота матеріально-технічного забезпечення', parent=support)
+        Unit.objects.get_or_create(name='Інженерна рота', parent=support)
+        Unit.objects.get_or_create(name='Розвідувальна рота', parent=brigade)
 
-        self.stdout.write(f'Створено {Unit.objects.count()} підрозділів')
+        self.stdout.write(f'Створено/перевірено {Unit.objects.count()} підрозділів')
 
     def create_positions(self):
         """Створення штатних посад"""
@@ -273,13 +274,15 @@ class Command(BaseCommand):
         # Створення посад
         for unit, position_name, category, specialty_code, tariff in positions_data:
             specialty = MilitarySpecialty.objects.get(code=specialty_code)
-            Position.objects.create(
-                unit=unit,
+            Position.objects.get_or_create(
                 position_index=f'П-{position_counter:05d}',
-                name=position_name,
-                category=category,
-                specialty=specialty,
-                tariff_rate=tariff
+                defaults={
+                    'unit': unit,
+                    'name': position_name,
+                    'category': category,
+                    'specialty': specialty,
+                    'tariff_rate': tariff
+                }
             )
             position_counter += 1
 
@@ -355,16 +358,19 @@ class Command(BaseCommand):
             birth_month = random.randint(1, 12)
             birth_day = random.randint(1, 28)
 
-            serviceman = Serviceman.objects.create(
-                position=position,
-                rank=rank,
-                last_name=random.choice(last_names),
-                first_name=random.choice(first_names_male),
-                middle_name=random.choice(middle_names_male),
-                date_of_birth=date(birth_year, birth_month, birth_day),
-                place_of_birth=f'м. {random.choice(cities)}',
-                tax_id_number=f'{random.randint(1000000000, 9999999999)}',
-                passport_number=f'{random.choice(["АА", "АВ", "АС", "ВА", "ВВ", "ВС"])}{random.randint(100000, 999999)}'
+            tax_id = f'{random.randint(1000000000, 9999999999)}'
+            serviceman, created = Serviceman.objects.get_or_create(
+                tax_id_number=tax_id,
+                defaults={
+                    'position': position,
+                    'rank': rank,
+                    'last_name': random.choice(last_names),
+                    'first_name': random.choice(first_names_male),
+                    'middle_name': random.choice(middle_names_male),
+                    'date_of_birth': date(birth_year, birth_month, birth_day),
+                    'place_of_birth': f'м. {random.choice(cities)}',
+                    'passport_number': f'{random.choice(["АА", "АВ", "АС", "ВА", "ВВ", "ВС"])}{random.randint(100000, 999999)}'
+                }
             )
 
             # Прив'язуємо користувача для деяких військовослужбовців
@@ -389,11 +395,13 @@ class Command(BaseCommand):
             start_date = date.today() - timedelta(days=random.randint(30, 365 * 2))
             end_date = start_date + timedelta(days=365 * contract_years)
 
-            Contract.objects.create(
+            Contract.objects.get_or_create(
                 serviceman=serviceman,
                 start_date=start_date,
-                end_date=end_date,
-                details=f'Контракт на {contract_years} років'
+                defaults={
+                    'end_date': end_date,
+                    'details': f'Контракт на {contract_years} років'
+                }
             )
 
         self.stdout.write(f'Створено {Contract.objects.count()} контрактів')
@@ -410,30 +418,35 @@ class Command(BaseCommand):
 
         for serviceman in servicemen_with_history:
             # Призначення на посаду
-            ServiceHistoryEvent.objects.create(
-                serviceman=serviceman,
-                event_type=ServiceHistoryEvent.EventType.APPOINTMENT,
-                event_date=serviceman.contracts.first().start_date,
-                details={
-                    'position_id': serviceman.position.id if serviceman.position else None,
-                    'position_name': str(serviceman.position) if serviceman.position else 'N/A'
-                },
-                order_reference=f'Наказ №{random.randint(1, 500)}/2024'
-            )
+            if serviceman.contracts.exists():
+                ServiceHistoryEvent.objects.get_or_create(
+                    serviceman=serviceman,
+                    event_type=ServiceHistoryEvent.EventType.APPOINTMENT,
+                    order_reference=f'Наказ №{random.randint(1, 500)}/2024',
+                    defaults={
+                        'event_date': serviceman.contracts.first().start_date,
+                        'details': {
+                            'position_id': serviceman.position.id if serviceman.position else None,
+                            'position_name': str(serviceman.position) if serviceman.position else 'N/A'
+                        }
+                    }
+                )
 
             # Для деяких додаємо підвищення у званні
-            if random.random() > 0.5:
+            if random.random() > 0.5 and serviceman.contracts.exists():
                 promotion_date = serviceman.contracts.first().start_date + timedelta(days=random.randint(180, 540))
                 if promotion_date < date.today():
-                    ServiceHistoryEvent.objects.create(
+                    ServiceHistoryEvent.objects.get_or_create(
                         serviceman=serviceman,
                         event_type=ServiceHistoryEvent.EventType.PROMOTION,
-                        event_date=promotion_date,
-                        details={
-                            'new_rank': serviceman.rank.name,
-                            'previous_rank': 'Солдат'
-                        },
-                        order_reference=f'Наказ №{random.randint(501, 1000)}/2024'
+                        order_reference=f'Наказ №{random.randint(501, 1000)}/2024',
+                        defaults={
+                            'event_date': promotion_date,
+                            'details': {
+                                'new_rank': serviceman.rank.name,
+                                'previous_rank': 'Солдат'
+                            }
+                        }
                     )
 
         self.stdout.write(f'Створено {ServiceHistoryEvent.objects.count()} записів історії служби')

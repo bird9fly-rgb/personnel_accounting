@@ -1,0 +1,164 @@
+<!-- templates/reporting/staffing_report.html -->
+{% extends "base.html" %}
+
+{% block title %}Звіт по укомплектованості - АСООС 'ОБРІГ'{% endblock %}
+
+{% block content %}
+<div class="container mx-auto p-6">
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <h1 class="text-3xl font-bold mb-6 text-gray-800">Звіт по укомплектованості</h1>
+
+        <!-- Вибір підрозділу -->
+        <form method="get" class="mb-6">
+            <div class="flex gap-4">
+                <select name="unit_id" class="px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">-- Оберіть підрозділ --</option>
+                    {% for unit in units %}
+                        <option value="{{ unit.id }}" {% if request.GET.unit_id == unit.id|stringformat:"s" %}selected{% endif %}>
+                            {{ unit.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700">
+                    Сформувати звіт
+                </button>
+                {% if report %}
+                <a href="{% url 'reporting:export-report' 'staffing' %}?unit_id={{ request.GET.unit_id }}&format=excel"
+                   class="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700">
+                    Експорт в Excel
+                </a>
+                {% endif %}
+            </div>
+        </form>
+
+        {% if report %}
+        <!-- Детальний звіт по підрозділу -->
+        <div class="border-t pt-6">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-800">{{ report.unit_name }}</h2>
+
+            <!-- Загальна статистика -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <p class="text-sm text-gray-600">Всього посад</p>
+                    <p class="text-2xl font-bold text-blue-600">{{ report.summary.total_positions }}</p>
+                </div>
+                <div class="bg-green-50 p-4 rounded-lg">
+                    <p class="text-sm text-gray-600">Укомплектовано</p>
+                    <p class="text-2xl font-bold text-green-600">{{ report.summary.filled_positions }}</p>
+                </div>
+                <div class="bg-red-50 p-4 rounded-lg">
+                    <p class="text-sm text-gray-600">Вакантно</p>
+                    <p class="text-2xl font-bold text-red-600">{{ report.summary.vacant_positions }}</p>
+                </div>
+                <div class="bg-purple-50 p-4 rounded-lg">
+                    <p class="text-sm text-gray-600">Укомплектованість</p>
+                    <p class="text-2xl font-bold text-purple-600">{{ report.summary.staffing_percentage }}%</p>
+                </div>
+            </div>
+
+            <!-- Прогрес-бар укомплектованості -->
+            <div class="mb-6">
+                <div class="w-full bg-gray-200 rounded-full h-6">
+                    <div class="bg-blue-600 h-6 rounded-full text-center text-white text-sm leading-6"
+                         style="width: {{ report.summary.staffing_percentage }}%">
+                        {{ report.summary.staffing_percentage }}%
+                    </div>
+                </div>
+            </div>
+
+            <!-- По категоріях -->
+            <h3 class="text-xl font-semibold mb-3 text-gray-700">Розподіл по категоріях</h3>
+            <div class="overflow-x-auto mb-6">
+                <table class="min-w-full bg-white border">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="px-4 py-2 border text-left">Категорія</th>
+                            <th class="px-4 py-2 border text-center">Всього</th>
+                            <th class="px-4 py-2 border text-center">Укомплектовано</th>
+                            <th class="px-4 py-2 border text-center">Вакантно</th>
+                            <th class="px-4 py-2 border text-center">%</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for category in report.by_category %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-2 border">{{ category.category }}</td>
+                            <td class="px-4 py-2 border text-center">{{ category.total }}</td>
+                            <td class="px-4 py-2 border text-center text-green-600">{{ category.filled }}</td>
+                            <td class="px-4 py-2 border text-center text-red-600">{{ category.total|add:"-"|add:category.filled }}</td>
+                            <td class="px-4 py-2 border text-center">
+                                {% widthratio category.filled category.total 100 %}%
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Вакантні посади -->
+            <h3 class="text-xl font-semibold mb-3 text-gray-700">Вакантні посади</h3>
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white border">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="px-4 py-2 border text-left">Індекс</th>
+                            <th class="px-4 py-2 border text-left">Назва посади</th>
+                            <th class="px-4 py-2 border text-left">Підрозділ</th>
+                            <th class="px-4 py-2 border text-left">ВОС</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for position in report.vacant_positions_list|slice:":20" %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-2 border">{{ position.position_index }}</td>
+                            <td class="px-4 py-2 border">{{ position.name }}</td>
+                            <td class="px-4 py-2 border">{{ position.unit.name }}</td>
+                            <td class="px-4 py-2 border">{{ position.specialty.code }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {% elif summary %}
+        <!-- Зведений звіт по батальйонах -->
+        <div class="border-t pt-6">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-800">Зведений звіт по батальйонах</h2>
+
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white border">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="px-4 py-2 border text-left">Батальйон</th>
+                            <th class="px-4 py-2 border text-center">Всього посад</th>
+                            <th class="px-4 py-2 border text-center">Укомплектовано</th>
+                            <th class="px-4 py-2 border text-center">Вакантно</th>
+                            <th class="px-4 py-2 border text-center">Укомплектованість</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for battalion in summary %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-2 border font-semibold">{{ battalion.battalion }}</td>
+                            <td class="px-4 py-2 border text-center">{{ battalion.total_positions }}</td>
+                            <td class="px-4 py-2 border text-center text-green-600">{{ battalion.filled_positions }}</td>
+                            <td class="px-4 py-2 border text-center text-red-600">{{ battalion.vacant_positions }}</td>
+                            <td class="px-4 py-2 border text-center">
+                                <div class="flex items-center justify-center">
+                                    <div class="w-24 bg-gray-200 rounded-full h-4 mr-2">
+                                        <div class="bg-blue-600 h-4 rounded-full" style="width: {{ battalion.percentage }}%"></div>
+                                    </div>
+                                    <span class="text-sm font-semibold">{{ battalion.percentage }}%</span>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

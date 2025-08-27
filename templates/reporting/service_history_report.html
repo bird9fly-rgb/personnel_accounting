@@ -1,0 +1,137 @@
+<!-- templates/reporting/service_history_report.html -->
+{% extends "base.html" %}
+
+{% block title %}Звіт по історії служби - АСООС 'ОБРІГ'{% endblock %}
+
+{% block content %}
+<div class="container mx-auto p-6">
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <h1 class="text-3xl font-bold mb-6 text-gray-800">Звіт по історії служби</h1>
+
+        <!-- Фільтри по даті -->
+        <form method="get" class="mb-6 bg-gray-50 p-4 rounded-lg">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label for="start_date" class="block text-sm font-medium text-gray-700 mb-1">Дата початку</label>
+                    <input type="date" name="start_date" id="start_date"
+                           value="{{ start_date|date:'Y-m-d' }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div>
+                    <label for="end_date" class="block text-sm font-medium text-gray-700 mb-1">Дата закінчення</label>
+                    <input type="date" name="end_date" id="end_date"
+                           value="{{ end_date|date:'Y-m-d' }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="flex items-end">
+                    <button type="submit" class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                        Сформувати звіт
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        {% if report %}
+        <!-- Період звіту -->
+        <div class="bg-blue-50 border-l-4 border-blue-600 p-4 mb-6">
+            <p class="text-sm text-gray-600">Період звіту</p>
+            <p class="text-xl font-semibold text-gray-800">{{ report.period }}</p>
+            <p class="text-lg text-blue-600 font-bold">Всього подій: {{ report.total_events }}</p>
+        </div>
+
+        <!-- Статистика по типах подій -->
+        <div class="mb-6">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800">Розподіл за типами подій</h2>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                {% for event_type in report.by_type %}
+                <div class="bg-gray-50 p-4 rounded-lg text-center">
+                    <p class="text-2xl font-bold text-gray-800">{{ event_type.count }}</p>
+                    <p class="text-sm text-gray-600">
+                        {% if event_type.event_type == 'APPOINTMENT' %}Призначень
+                        {% elif event_type.event_type == 'TRANSFER' %}Переведень
+                        {% elif event_type.event_type == 'PROMOTION' %}Підвищень
+                        {% elif event_type.event_type == 'DISMISSAL' %}Звільнень
+                        {% elif event_type.event_type == 'ENLISTMENT' %}Зарахувань
+                        {% elif event_type.event_type == 'DEATH' %}Загибель
+                        {% else %}{{ event_type.event_type }}
+                        {% endif %}
+                    </p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Детальний список подій -->
+        <div>
+            <h2 class="text-xl font-semibold mb-4 text-gray-800">Детальний перелік подій</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white border">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="px-4 py-2 border text-left">Дата</th>
+                            <th class="px-4 py-2 border text-left">Тип події</th>
+                            <th class="px-4 py-2 border text-left">Військовослужбовець</th>
+                            <th class="px-4 py-2 border text-left">Звання</th>
+                            <th class="px-4 py-2 border text-left">Деталі</th>
+                            <th class="px-4 py-2 border text-left">Наказ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for event in report.events %}
+                        <tr class="hover:bg-gray-50 {% cycle '' 'bg-gray-50' %}">
+                            <td class="px-4 py-2 border">{{ event.event_date|date:"d.m.Y" }}</td>
+                            <td class="px-4 py-2 border">
+                                <span class="px-2 py-1 text-xs rounded-full
+                                    {% if event.event_type == 'APPOINTMENT' %}bg-blue-100 text-blue-800
+                                    {% elif event.event_type == 'TRANSFER' %}bg-purple-100 text-purple-800
+                                    {% elif event.event_type == 'PROMOTION' %}bg-green-100 text-green-800
+                                    {% elif event.event_type == 'DISMISSAL' %}bg-red-100 text-red-800
+                                    {% elif event.event_type == 'ENLISTMENT' %}bg-indigo-100 text-indigo-800
+                                    {% elif event.event_type == 'DEATH' %}bg-gray-800 text-white
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ event.get_event_type_display }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-2 border">
+                                <a href="{% url 'personnel:serviceman-detail' event.serviceman.pk %}" class="text-blue-600 hover:underline">
+                                    {{ event.serviceman.full_name }}
+                                </a>
+                            </td>
+                            <td class="px-4 py-2 border">{{ event.serviceman.rank }}</td>
+                            <td class="px-4 py-2 border text-sm">
+                                {% if event.details %}
+                                    {% for key, value in event.details.items %}
+                                        <span class="block">{{ key }}: {{ value }}</span>
+                                    {% endfor %}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-2 border text-sm">{{ event.order_reference }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+                                За вказаний період подій не знайдено
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Експорт -->
+        <div class="mt-6 flex justify-end space-x-2">
+            <a href="{% url 'reporting:export-report' 'service-history' %}?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}&format=excel"
+               class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">
+                Експорт в Excel
+            </a>
+            <button onclick="window.print()" class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700">
+                Друк
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

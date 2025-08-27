@@ -3,7 +3,7 @@
 Сервіси для генерації звітів та аналітики
 """
 
-from django.db.models import Count, Q, F, Sum, Avg
+from django.db.models import Count, Q, F, Sum, Avg, ExpressionWrapper, fields
 from django.utils import timezone
 from datetime import datetime, timedelta
 from apps.personnel.models import Serviceman, Contract, ServiceHistoryEvent, Rank
@@ -112,6 +112,14 @@ class PersonnelReportService:
             '46+': 0,
         }
 
+        # Обчислення середнього віку
+        age_expression = ExpressionWrapper(
+            (F('date_of_birth') - today),
+            output_field=fields.DurationField()
+        )
+        average_age_duration = Serviceman.objects.aggregate(avg_age=Avg(age_expression))['avg_age']
+        average_age = abs(average_age_duration.days // 365) if average_age_duration else 0
+
         for serviceman in Serviceman.objects.all():
             age = (today - serviceman.date_of_birth).days // 365
             if age <= 25:
@@ -138,9 +146,7 @@ class PersonnelReportService:
             'by_rank': list(by_rank),
             'by_age': age_groups,
             'contracts_ending_soon': contracts_ending_soon,
-            'average_age': Serviceman.objects.aggregate(
-                avg_age=Avg(F('date_of_birth'))
-            )['avg_age'],
+            'average_age': average_age,
         }
 
     @staticmethod
