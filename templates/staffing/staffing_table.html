@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }} - АСООС 'ОБРІГ'{% endblock %}
+
+{% block content %}
+<div class="bg-white p-6 rounded-lg shadow-lg">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-800">{{ page_title }}</h1>
+        </div>
+
+    <div class="overflow-x-auto">
+        <table class="min-w-full bg-white text-sm">
+            <thead class="bg-gray-800 text-white">
+                <tr>
+                    <th class="py-2 px-3 text-left font-semibold">Індекс посади</th>
+                    <th class="py-2 px-3 text-left font-semibold">Посада</th>
+                    <th class="py-2 px-3 text-left font-semibold">ШПК</th>
+                    <th class="py-2 px-3 text-left font-semibold">ВОС</th>
+                    <th class="py-2 px-3 text-left font-semibold">Тариф</th>
+                    <th class="py-2 px-3 text-left font-semibold">Звання (факт)</th>
+                    <th class="py-2 px-3 text-left font-semibold">ПІБ (факт)</th>
+                </tr>
+            </thead>
+            <tbody class="text-gray-700">
+                {% for unit, positions in units_with_positions.items %}
+                    <tr class="bg-gray-200">
+                        <td colspan="7" class="py-2 px-3 font-bold text-gray-800">
+                            {{ unit.name|upper }}
+                        </td>
+                    </tr>
+
+                    {% for position in positions %}
+                    <tr class="border-b hover:bg-gray-50 {% if not position.serviceman %}bg-red-50{% endif %}">
+                        <td class="py-2 px-3">{{ position.position_index }}</td>
+                        <td class="py-2 px-3 font-medium">{{ position.name }}</td>
+                        <td class="py-2 px-3">{{ position.category }}</td>
+                        <td class="py-2 px-3">{{ position.specialty.code }}</td>
+                        <td class="py-2 px-3">{{ position.tariff_rate }}</td>
+
+                        {% if position.serviceman %}
+                            <td class="py-2 px-3">{{ position.serviceman.rank.name }}</td>
+                            <td class="py-2 px-3">
+                                <a href="{% url 'personnel:serviceman-detail' position.serviceman.pk %}" class="text-blue-600 hover:underline">
+                                    {{ position.serviceman.full_name }}
+                                </a>
+                            </td>
+                        {% else %}
+                            <td class="py-2 px-3 text-red-600 font-semibold">ВАКАНТ</td>
+                            <td class="py-2 px-3 text-red-600 font-semibold">ВАКАНТ</td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

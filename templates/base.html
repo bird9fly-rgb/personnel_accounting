@@ -13,7 +13,10 @@
             <div class="space-x-2">
                 <a href="{% url 'personnel:serviceman-list' %}" class="px-3 py-2 rounded hover:bg-gray-700">Особовий склад</a>
                 <a href="{% url 'personnel:electronic-journal' %}" class="px-3 py-2 rounded hover:bg-gray-700">Електронний журнал</a>
-                <a href="{% url 'staffing:unit-list' %}" class="px-3 py-2 rounded hover:bg-gray-700">Підрозділи</a>
+                <div class="inline-block">
+                    <a href="{% url 'staffing:unit-list' %}" class="px-3 py-2 rounded hover:bg-gray-700">Підрозділи</a>
+                    <a href="{% url 'staffing:staffing-table' %}" class="px-3 py-2 rounded hover:bg-gray-700 font-semibold">ШПО</a>
+                </div>
                 <a href="{% url 'documents:report-list' %}" class="px-3 py-2 rounded hover:bg-gray-700">Рапорти</a>
                 <a href="{% url 'reporting:dashboard' %}" class="px-3 py-2 rounded hover:bg-gray-700">Звіти</a>
                 <a href="/admin/" class="px-3 py-2 rounded hover:bg-gray-700">Адмін-панель</a>
