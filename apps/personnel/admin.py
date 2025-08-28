@@ -1,5 +1,8 @@
 from django.contrib import admin
-from .models import Rank, Serviceman, Contract, ServiceHistoryEvent, Education, FamilyMember
+from .models import (
+    Rank, Serviceman, Contract, ServiceHistoryEvent,
+    Education, FamilyMember, TemporaryArrival, IrrecoverableLoss
+)
 
 
 @admin.register(Rank)
@@ -9,28 +12,24 @@ class RankAdmin(admin.ModelAdmin):
 
 
 class ContractInline(admin.TabularInline):
-    """Дозволяє редагувати контракти на сторінці військовослужбовця."""
     model = Contract
     extra = 1
-    classes = ['collapse']  # Робить блок згорнутим за замовчуванням
+    classes = ['collapse']
 
 
 class EducationInline(admin.TabularInline):
-    """Дозволяє редагувати освіту на сторінці військовослужбовця (нова)."""
     model = Education
     extra = 1
     classes = ['collapse']
 
 
 class FamilyMemberInline(admin.TabularInline):
-    """Дозволяє редагувати членів сім'ї на сторінці військовослужбовця (нова)."""
     model = FamilyMember
     extra = 1
     classes = ['collapse']
 
 
 class ServiceHistoryEventInline(admin.TabularInline):
-    """Дозволяє переглядати історію служби на сторінці військовослужбовця."""
     model = ServiceHistoryEvent
     extra = 0
     readonly_fields = ('event_type', 'event_date', 'details', 'order_reference')
@@ -45,12 +44,10 @@ class ServicemanAdmin(admin.ModelAdmin):
     search_fields = ('last_name', 'first_name', 'personal_number', 'tax_id_number')
     autocomplete_fields = ('position', 'user')
 
-    # Додаємо нові інлайни для освіти та сім'ї
     inlines = [EducationInline, FamilyMemberInline, ContractInline, ServiceHistoryEventInline]
 
-    readonly_fields = ('user',)  # Обліковий запис не редагується напряму
+    readonly_fields = ('user',)
 
-    # Оновлюємо fieldsets для групування полів
     fieldsets = (
         ('Основна інформація', {
             'fields': ('last_name', 'first_name', 'middle_name', 'photo')
@@ -68,5 +65,48 @@ class ServicemanAdmin(admin.ModelAdmin):
         ('Системна інформація', {
             'fields': ('user',),
             'classes': ('collapse',)
+        }),
+    )
+
+
+@admin.register(TemporaryArrival)
+class TemporaryArrivalAdmin(admin.ModelAdmin):
+    list_display = ('full_name', 'rank_name', 'origin_unit', 'arrival_date', 'departure_date')
+    list_filter = ('arrival_date', 'origin_unit')
+    search_fields = ('full_name', 'origin_unit', 'arrival_reason')
+    fieldsets = (
+        (None, {
+            'fields': ('full_name', 'rank_name', 'position_name')
+        }),
+        ('Інформація про переміщення', {
+            'fields': (
+            'origin_unit', 'arrival_reason', 'arrival_date', 'arrival_order', 'departure_date', 'departure_order')
+        }),
+        ('Додатково', {
+            'fields': ('notes',)
+        }),
+    )
+
+
+# НОВИЙ КЛАС для вкладки "7. Безповоротні втрати"
+@admin.register(IrrecoverableLoss)
+class IrrecoverableLossAdmin(admin.ModelAdmin):
+    """
+    Налаштування адмін-панелі для моделі безповоротних втрат.
+    """
+    list_display = ('serviceman', 'loss_type', 'loss_date', 'loss_location')
+    list_filter = ('loss_type', 'loss_date')
+    search_fields = ('serviceman__last_name', 'serviceman__first_name', 'loss_location', 'circumstances')
+    autocomplete_fields = ['serviceman']
+
+    fieldsets = (
+        (None, {
+            'fields': ('serviceman', 'loss_type', 'loss_date')
+        }),
+        ('Деталі інциденту', {
+            'fields': ('circumstances', 'loss_location', 'burial_location')
+        }),
+        ('Облікова інформація', {
+            'fields': ('exclusion_date', 'exclusion_order', 'notification_details')
         }),
     )

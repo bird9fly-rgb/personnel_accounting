@@ -199,3 +199,77 @@ class PositionHistory(models.Model):
         # Перевірка, що дата закінчення не раніше дати початку
         if self.end_date and self.end_date < self.start_date:
             raise ValidationError('Дата звільнення з посади не може бути раніше дати призначення.')
+
+
+class TemporaryArrival(models.Model):
+    """
+    Облік тимчасово прибулого особового складу з інших військових частин.
+    """
+    full_name = models.CharField("ПІБ", max_length=255)
+    rank_name = models.CharField("Військове звання", max_length=100)
+    position_name = models.CharField("Посада", max_length=255)
+
+    origin_unit = models.CharField("Звідки прибув (в/ч, населений пункт)", max_length=255)
+    arrival_reason = models.CharField("Підстава прибуття (наказ, розпорядження)", max_length=255)
+
+    arrival_date = models.DateField("Дата прибуття")
+    arrival_order = models.CharField("Наказ про прибуття (дата і номер)", max_length=100, blank=True)
+
+    departure_date = models.DateField("Дата вибуття", null=True, blank=True)
+    departure_order = models.CharField("Наказ про вибуття (дата і номер)", max_length=100, blank=True)
+
+    notes = models.TextField("Додаткова інформація", blank=True)
+
+    class Meta:
+        verbose_name = "Тимчасово прибулий"
+        verbose_name_plural = "4. Тимчасово прибулі"
+        ordering = ['-arrival_date']
+
+    def __str__(self):
+        return f"{self.rank_name} {self.full_name} (прибув {self.arrival_date})"
+
+
+class IrrecoverableLoss(models.Model):
+    """
+    Облік безповоротних втрат особового складу.
+    """
+
+    class LossType(models.TextChoices):
+        KIA = 'KIA', 'Загинув'
+        DIED = 'DIED', 'Помер (від хвороби, нещасного випадку)'
+        MIA = 'MIA', 'Зник безвісти'
+        CAPTURED = 'CAPTURED', 'Полонений'
+
+    serviceman = models.OneToOneField(
+        Serviceman,
+        on_delete=models.CASCADE,
+        related_name='loss_record',
+        verbose_name="Військовослужбовець"
+    )
+
+    loss_type = models.CharField("Вид втрати", max_length=10, choices=LossType.choices)
+    loss_date = models.DateField("Дата безповоротної втрати")
+    circumstances = models.TextField("Обставини, що призвели до втрати")
+    loss_location = models.CharField("Місце втрати", max_length=255)
+
+    exclusion_date = models.DateField("Дата виключення зі списків")
+    exclusion_order = models.CharField("Наказ про виключення (дата і номер)", max_length=100)
+
+    notification_details = models.CharField(
+        "Кому, за яким номером і коли надіслано сповіщення",
+        max_length=255,
+        blank=True
+    )
+    burial_location = models.CharField(
+        "Місце і дата поховання (імовірне місце перебування)",
+        max_length=255,
+        blank=True
+    )
+
+    class Meta:
+        verbose_name = "Безповоротна втрата"
+        verbose_name_plural = "7. Безповоротні втрати"
+        ordering = ['-loss_date']
+
+    def __str__(self):
+        return f"{self.get_loss_type_display()} - {self.serviceman.full_name}"

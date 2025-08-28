@@ -14,8 +14,14 @@
             <button class="tab-button" data-tab="absent">
                 Тимчасово відсутні ({{ temporarily_absent.count }})
             </button>
+            <button class="tab-button" data-tab="arrivals">
+                Тимчасово прибулі ({{ temporary_arrivals.count }})
+            </button>
             <button class="tab-button" data-tab="excluded">
-                Виключені зі списків ({{ excluded_servicemen.count }})
+                Виключені ({{ excluded_servicemen.count }})
+            </button>
+            <button class="tab-button" data-tab="losses">
+                Безповоротні втрати ({{ irrecoverable_losses.count }})
             </button>
         </nav>
     </div>
@@ -24,13 +30,84 @@
         <div id="on-duty" class="tab-content">
             {% include 'personnel/_journal_table.html' with servicemen=on_duty_servicemen caption='Особовий склад, що перебуває на службі' %}
         </div>
-
         <div id="absent" class="tab-content hidden">
             {% include 'personnel/_journal_table.html' with servicemen=temporarily_absent caption='Особовий склад, що тимчасово відсутній (відпустка, лікування, СЗЧ)' %}
         </div>
-
+        <div id="arrivals" class="tab-content hidden">
+             <h2 class="text-xl font-semibold mb-3 text-gray-700">Особовий склад, що тимчасово прибув з інших частин</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white text-sm">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="py-2 px-3 text-left font-semibold">ПІБ</th>
+                            <th class="py-2 px-3 text-left font-semibold">Звання</th>
+                            <th class="py-2 px-3 text-left font-semibold">Звідки прибув</th>
+                            <th class="py-2 px-3 text-left font-semibold">Підстава</th>
+                            <th class="py-2 px-3 text-left font-semibold">Дата прибуття</th>
+                            <th class="py-2 px-3 text-left font-semibold">Дата вибуття</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-gray-700">
+                        {% for arrival in temporary_arrivals %}
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="py-2 px-3 font-medium">{{ arrival.full_name }}</td>
+                            <td class="py-2 px-3">{{ arrival.rank_name }}</td>
+                            <td class="py-2 px-3">{{ arrival.origin_unit }}</td>
+                            <td class="py-2 px-3">{{ arrival.arrival_reason }}</td>
+                            <td class="py-2 px-3">{{ arrival.arrival_date|date:"d.m.Y" }}</td>
+                            <td class="py-2 px-3">{{ arrival.departure_date|date:"d.m.Y"|default:"-" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-gray-500">Немає даних про тимчасово прибулих.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
         <div id="excluded" class="tab-content hidden">
             {% include 'personnel/_journal_table.html' with servicemen=excluded_servicemen caption='Особовий склад, виключений зі списків (звільнені, загиблі, зниклі безвісти)' %}
+        </div>
+
+        <div id="losses" class="tab-content hidden">
+            <h2 class="text-xl font-semibold mb-3 text-gray-700">Облік безповоротних втрат</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white text-sm">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="py-2 px-3 text-left font-semibold">Військовослужбовець</th>
+                            <th class="py-2 px-3 text-left font-semibold">Звання</th>
+                            <th class="py-2 px-3 text-left font-semibold">Вид втрати</th>
+                            <th class="py-2 px-3 text-left font-semibold">Дата втрати</th>
+                            <th class="py-2 px-3 text-left font-semibold">Обставини</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-gray-700">
+                        {% for loss in irrecoverable_losses %}
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="py-2 px-3 font-medium">
+                                <a href="{% url 'personnel:serviceman-detail' loss.serviceman.pk %}" class="text-blue-600 hover:underline">
+                                    {{ loss.serviceman.full_name }}
+                                </a>
+                            </td>
+                            <td class="py-2 px-3">{{ loss.serviceman.rank.name }}</td>
+                            <td class="py-2 px-3">
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                                    {{ loss.get_loss_type_display }}
+                                </span>
+                            </td>
+                            <td class="py-2 px-3">{{ loss.loss_date|date:"d.m.Y" }}</td>
+                            <td class="py-2 px-3">{{ loss.circumstances|truncatechars:100 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-4 text-gray-500">Немає даних про безповоротні втрати.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
@@ -51,11 +128,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     tabButtons.forEach(button => {
         button.addEventListener('click', () => {
-            // Деактивувати всі кнопки та приховати контент
             tabButtons.forEach(btn => btn.classList.remove('active'));
             tabContents.forEach(content => content.classList.add('hidden'));
 
-            // Активувати натиснуту кнопку та показати відповідний контент
             button.classList.add('active');
             document.getElementById(button.dataset.tab).classList.remove('hidden');
         });

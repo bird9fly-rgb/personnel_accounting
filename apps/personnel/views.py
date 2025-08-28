@@ -1,5 +1,5 @@
 from django.views.generic import ListView, DetailView, TemplateView
-from .models import Serviceman
+from .models import Serviceman, TemporaryArrival, IrrecoverableLoss
 
 
 class ServicemanListView(ListView):
@@ -27,19 +27,16 @@ class ServicemanDetailView(DetailView):
 class ElectronicJournalView(TemplateView):
     """
     Представлення для "Електронного журналу обліку особового складу".
-    Збирає дані з різних моделей та представляє їх у структурованому вигляді.
     """
     template_name = 'personnel/electronic_journal.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        # 1. Основний особовий склад (на службі)
         context['on_duty_servicemen'] = Serviceman.objects.filter(
             status=Serviceman.Status.ON_DUTY
         ).select_related('rank', 'position__unit')
 
-        # 2. Тимчасово відсутній особовий склад
         context['temporarily_absent'] = Serviceman.objects.filter(
             status__in=[
                 Serviceman.Status.ON_LEAVE,
@@ -48,15 +45,31 @@ class ElectronicJournalView(TemplateView):
             ]
         ).select_related('rank', 'position__unit')
 
-        # 3. Виключені зі списків (безповоротні втрати та звільнені)
         context['excluded_servicemen'] = Serviceman.objects.filter(
             status__in=[
                 Serviceman.Status.DISMISSED,
                 Serviceman.Status.KIA,
                 Serviceman.Status.MIA
             ]
-        ).select_related('rank')  # Посади може вже не бути
+        ).select_related('rank')
+
+        context['temporary_arrivals'] = TemporaryArrival.objects.all()
+
+        # НОВИЙ ЗАПИТ: Отримуємо дані про безповоротні втрати
+        context['irrecoverable_losses'] = IrrecoverableLoss.objects.select_related(
+            'serviceman', 'serviceman__rank'
+        ).all()
 
         context['title'] = "Електронний журнал обліку особового складу"
 
         return context
+
+
+class TemporaryArrivalListView(ListView):
+    """
+    Представлення для окремої сторінки "Тимчасово прибулі".
+    """
+    model = TemporaryArrival
+    template_name = 'personnel/temporary_arrival_list.html'
+    context_object_name = 'arrivals'
+    paginate_by = 20
