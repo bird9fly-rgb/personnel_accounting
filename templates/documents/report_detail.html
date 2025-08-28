@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Рапорт №{{ report.registration_number }} - АСООС 'ОБРІГ'{% endblock %}
+
+{% block content %}
+<div class="bg-white p-8 rounded-lg shadow-lg max-w-4xl mx-auto">
+    <div class="flex justify-between items-start mb-6 border-b pb-4">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800">Рапорт №{{ report.registration_number }}</h1>
+            <p class="text-lg text-gray-600">від {{ report.submission_date|date:"d F Y" }} р.</p>
+        </div>
+        <div class="text-right">
+            <p class="font-semibold">Статус:</p>
+            <span class="px-3 py-1.5 text-sm font-semibold rounded-full
+                {% if report.status == 'APPROVED' %}bg-green-100 text-green-800
+                {% elif report.status == 'REJECTED' %}bg-red-100 text-red-800
+                {% elif report.status == 'UNDER_REVIEW' %}bg-yellow-100 text-yellow-800
+                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                {{ report.get_status_display }}
+            </span>
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="mb-4 p-4 rounded-md bg-green-100 text-green-700">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 text-sm">
+        <div class="bg-gray-50 p-4 rounded-md space-y-2">
+            <h3 class="font-semibold text-gray-700 text-base border-b pb-1 mb-2">Деталі подання</h3>
+            <p><strong>Автор:</strong>
+                <a href="{% url 'personnel:serviceman-detail' report.author.pk %}" class="text-blue-600 hover:underline">
+                    {{ report.author.full_name }} ({{ report.author.rank }})
+                </a>
+            </p>
+            <p><strong>На чиє ім'я:</strong> {{ report.recipient_position }}</p>
+            <p><strong>Тип рапорту:</strong> {{ report.get_report_type_display }}</p>
+        </div>
+        <div class="bg-gray-50 p-4 rounded-md space-y-2">
+            <h3 class="font-semibold text-gray-700 text-base border-b pb-1 mb-2">Інформація про розгляд</h3>
+            <p><strong>Хто розглянув:</strong> {{ report.reviewed_by.get_full_name|default:"Ще не розглянуто" }}</p>
+            <p><strong>Дата останнього оновлення:</strong> {{ report.updated_at|date:"d.m.Y H:i" }}</p>
+        </div>
+    </div>
+
+
+    <div class="mb-8">
+        <h2 class="text-xl font-semibold mb-2 text-gray-700">Зміст рапорту</h2>
+        <div class="bg-gray-50 p-4 rounded-md prose max-w-none text-sm">
+            <p class="font-semibold text-base">{{ report.summary }}</p>
+            <hr class="my-2">
+            {{ report.full_text|linebreaksbr|default:"Повний текст відсутній." }}
+
+            {% if report.attachment %}
+            <div class="mt-4 border-t pt-2">
+                <p class="font-semibold">Прикріплений файл:</p>
+                <a href="{{ report.attachment.url }}" target="_blank" class="text-blue-600 hover:underline">
+                    {{ report.attachment_filename }}
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="mb-8">
+        <h2 class="text-xl font-semibold mb-2 text-gray-700">Резолюція</h2>
+        {% if report.resolution %}
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-md text-sm">
+                {{ report.resolution|linebreaksbr }}
+            </div>
+        {% else %}
+            <p class="text-gray-500 text-sm">Рішення ще не прийнято.</p>
+        {% endif %}
+    </div>
+
+    <div class="bg-gray-100 p-6 rounded-lg">
+        <h2 class="text-xl font-semibold mb-4 text-gray-700">Додати/змінити резолюцію</h2>
+        <form method="post">
+            {% csrf_token %}
+            {{ resolution_form|crispy }}
+            <div class="mt-4 flex justify-end">
+                <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700">
+                    Зберегти рішення
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="mt-8 flex justify-end border-t pt-4">
+        <a href="{% url 'documents:report-update' report.pk %}" class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 mr-2">
+            Редагувати рапорт
+        </a>
+        <a href="{% url 'documents:report-list' %}" class="text-gray-600 py-2 px-4">
+            Назад до списку
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -1,189 +1,80 @@
-<!-- templates/reporting/personnel_statistics.html -->
 {% extends "base.html" %}
 
 {% block title %}Статистика особового складу - АСООС 'ОБРІГ'{% endblock %}
 
 {% block content %}
-<div class="container mx-auto p-6">
-    <div class="bg-white rounded-lg shadow-lg p-6">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-3xl font-bold text-gray-800">Статистика особового складу</h1>
-            <div class="space-x-2">
-                <a href="{% url 'reporting:export-report' 'personnel' %}?format=excel"
-                   class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">
-                    Excel
-                </a>
-                <a href="{% url 'reporting:export-report' 'personnel' %}?format=json"
-                   class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
-                    JSON
-                </a>
-            </div>
+<div class="bg-white p-6 rounded-lg shadow-lg">
+    <h1 class="text-3xl font-bold mb-6 text-gray-800">Статистика особового складу</h1>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div>
+            <h2 class="text-xl font-semibold mb-4">Розподіл за званнями</h2>
+            <canvas id="rankChart"></canvas>
         </div>
-
-        <!-- Загальна чисельність -->
-        <div class="bg-blue-50 border-l-4 border-blue-600 p-4 mb-6">
-            <p class="text-sm text-gray-600">Загальна чисельність особового складу</p>
-            <p class="text-4xl font-bold text-blue-600">{{ statistics.total_servicemen }}</p>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- Розподіл за званнями -->
-            <div class="bg-white border rounded-lg p-4">
-                <h2 class="text-xl font-semibold mb-4 text-gray-800">Розподіл за званнями</h2>
-                <div class="space-y-2">
-                    {% for rank in statistics.by_rank %}
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-700">{{ rank.rank__name }}</span>
-                        <div class="flex items-center">
-                            <div class="w-32 bg-gray-200 rounded-full h-3 mr-3">
-                                <div class="bg-blue-600 h-3 rounded-full"
-                                     style="width: {% widthratio rank.count statistics.total_servicemen 100 %}%"></div>
-                            </div>
-                            <span class="font-semibold text-gray-800 min-w-[40px] text-right">{{ rank.count }}</span>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-
-                <!-- Графік (Canvas для Chart.js) -->
-                <canvas id="rankChart" class="mt-4" height="200"></canvas>
-            </div>
-
-            <!-- Розподіл за віком -->
-            <div class="bg-white border rounded-lg p-4">
-                <h2 class="text-xl font-semibold mb-4 text-gray-800">Розподіл за віковими групами</h2>
-                <div class="space-y-3">
-                    {% for age_group, count in statistics.by_age.items %}
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-700">{{ age_group }} років</span>
-                        <div class="flex items-center">
-                            <div class="w-32 bg-gray-200 rounded-full h-3 mr-3">
-                                <div class="bg-green-600 h-3 rounded-full"
-                                     style="width: {% widthratio count statistics.total_servicemen 100 %}%"></div>
-                            </div>
-                            <span class="font-semibold text-gray-800 min-w-[40px] text-right">{{ count }}</span>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-
-                <!-- Графік (Canvas для Chart.js) -->
-                <canvas id="ageChart" class="mt-4" height="200"></canvas>
-            </div>
-        </div>
-
-        <!-- Контракти -->
-        <div class="mt-6 bg-orange-50 border-l-4 border-orange-600 p-4">
-            <h3 class="text-lg font-semibold mb-2 text-gray-800">Контракти, що закінчуються найближчим часом</h3>
-            <p class="text-3xl font-bold text-orange-600">{{ statistics.contracts_ending_soon }}</p>
-            <p class="text-sm text-gray-600">протягом наступних 90 днів</p>
-        </div>
-
-        <!-- Таблиця зведеної статистики -->
-        <div class="mt-6">
-            <h3 class="text-xl font-semibold mb-3 text-gray-800">Детальна статистика</h3>
-            <div class="overflow-x-auto">
-                <table class="min-w-full bg-white border">
-                    <thead class="bg-gray-100">
-                        <tr>
-                            <th class="px-4 py-2 border text-left">Показник</th>
-                            <th class="px-4 py-2 border text-right">Значення</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td class="px-4 py-2 border">Загальна чисельність</td>
-                            <td class="px-4 py-2 border text-right font-semibold">{{ statistics.total_servicemen }}</td>
-                        </tr>
-                        <tr class="bg-gray-50">
-                            <td class="px-4 py-2 border">Офіцери (від молодшого лейтенанта)</td>
-                            <td class="px-4 py-2 border text-right">
-                                {% for rank in statistics.by_rank %}
-                                    {% if rank.rank__name == "Молодший лейтенант" or rank.rank__name == "Лейтенант" or rank.rank__name == "Старший лейтенант" or rank.rank__name == "Капітан" or rank.rank__name == "Майор" or rank.rank__name == "Підполковник" or rank.rank__name == "Полковник" %}
-                                        {% if forloop.first %}0{% endif %}
-                                    {% endif %}
-                                {% endfor %}
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="px-4 py-2 border">Сержанти</td>
-                            <td class="px-4 py-2 border text-right">
-                                {% for rank in statistics.by_rank %}
-                                    {% if "сержант" in rank.rank__name|lower %}
-                                        {% if forloop.first %}0{% endif %}
-                                    {% endif %}
-                                {% endfor %}
-                            </td>
-                        </tr>
-                        <tr class="bg-gray-50">
-                            <td class="px-4 py-2 border">Контракти закінчуються (90 днів)</td>
-                            <td class="px-4 py-2 border text-right text-orange-600 font-semibold">
-                                {{ statistics.contracts_ending_soon }}
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+        <div>
+            <h2 class="text-xl font-semibold mb-4">Розподіл за віком</h2>
+            <canvas id="ageChart"></canvas>
         </div>
     </div>
 </div>
+{% endblock %}
 
-<!-- Chart.js для візуалізації -->
+{% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// Дані для графіка званнь
-const rankData = {{ rank_chart_data|safe }};
-const rankCtx = document.getElementById('rankChart').getContext('2d');
-new Chart(rankCtx, {
-    type: 'bar',
-    data: {
-        labels: rankData.map(item => item.rank__name),
-        datasets: [{
-            label: 'Кількість',
-            data: rankData.map(item => item.count),
-            backgroundColor: 'rgba(59, 130, 246, 0.5)',
-            borderColor: 'rgba(59, 130, 246, 1)',
-            borderWidth: 1
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { display: false }
-        },
-        scales: {
-            y: { beginAtZero: true }
-        }
-    }
-});
+document.addEventListener('DOMContentLoaded', function() {
+    // Дані для графіка звань
+    const rankData = JSON.parse('{{ rank_chart_data|safe }}');
+    const rankLabels = rankData.map(item => item.rank__name);
+    const rankCounts = rankData.map(item => item.count);
 
-// Дані для графіка віку
-const ageData = {{ age_chart_data|safe }};
-const ageCtx = document.getElementById('ageChart').getContext('2d');
-new Chart(ageCtx, {
-    type: 'doughnut',
-    data: {
-        labels: ageData.map(item => item.group + ' років'),
-        datasets: [{
-            data: ageData.map(item => item.count),
-            backgroundColor: [
-                'rgba(34, 197, 94, 0.5)',
-                'rgba(59, 130, 246, 0.5)',
-                'rgba(251, 191, 36, 0.5)',
-                'rgba(239, 68, 68, 0.5)',
-                'rgba(168, 85, 247, 0.5)',
-                'rgba(107, 114, 128, 0.5)'
-            ]
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { position: 'bottom' }
+    const rankCtx = document.getElementById('rankChart').getContext('2d');
+    new Chart(rankCtx, {
+        type: 'bar',
+        data: {
+            labels: rankLabels,
+            datasets: [{
+                label: 'Кількість військовослужбовців',
+                data: rankCounts,
+                backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            scales: {
+                x: {
+                    beginAtZero: true
+                }
+            }
         }
-    }
+    });
+
+    // Дані для графіка віку
+    const ageData = JSON.parse('{{ age_chart_data|safe }}');
+    const ageLabels = ageData.map(item => item.group);
+    const ageCounts = ageData.map(item => item.count);
+
+    const ageCtx = document.getElementById('ageChart').getContext('2d');
+    new Chart(ageCtx, {
+        type: 'pie',
+        data: {
+            labels: ageLabels,
+            datasets: [{
+                label: 'Вікові групи',
+                data: ageCounts,
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.7)',
+                    'rgba(54, 162, 235, 0.7)',
+                    'rgba(255, 206, 86, 0.7)',
+                    'rgba(75, 192, 192, 0.7)',
+                    'rgba(153, 102, 255, 0.7)',
+                    'rgba(255, 159, 64, 0.7)'
+                ]
+            }]
+        }
+    });
 });
 </script>
 {% endblock %}

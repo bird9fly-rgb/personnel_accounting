@@ -10,10 +10,11 @@
     <nav class="bg-gray-800 text-white p-4 shadow-md">
         <div class="container mx-auto flex justify-between items-center">
             <a href="{% url 'personnel:serviceman-list' %}" class="text-xl font-bold">АСООС 'ОБРІГ'</a>
-            <div>
+            <div class="space-x-2">
                 <a href="{% url 'personnel:serviceman-list' %}" class="px-3 py-2 rounded hover:bg-gray-700">Особовий склад</a>
+                <a href="{% url 'personnel:electronic-journal' %}" class="px-3 py-2 rounded hover:bg-gray-700">Електронний журнал</a>
                 <a href="{% url 'staffing:unit-list' %}" class="px-3 py-2 rounded hover:bg-gray-700">Підрозділи</a>
-                <a href="{% url 'orders:order-list' %}" class="px-3 py-2 rounded hover:bg-gray-700">Накази</a>
+                <a href="{% url 'documents:report-list' %}" class="px-3 py-2 rounded hover:bg-gray-700">Рапорти</a>
                 <a href="{% url 'reporting:dashboard' %}" class="px-3 py-2 rounded hover:bg-gray-700">Звіти</a>
                 <a href="/admin/" class="px-3 py-2 rounded hover:bg-gray-700">Адмін-панель</a>
             </div>
@@ -28,5 +29,7 @@
     <footer class="bg-gray-800 text-white text-center p-4 mt-8">
         <p>&copy; 2025 Міністерство Оборони України. Всі права захищено.</p>
     </footer>
+
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

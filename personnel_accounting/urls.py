@@ -5,9 +5,12 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    # Додаємо маршрути для автентифікації
+    path('users/', include('apps.users.urls')),
+
     path('', include('apps.personnel.urls')),
     path('staffing/', include('apps.staffing.urls')),
-    path('orders/', include('apps.orders.urls')),
+    path('reports/', include('apps.documents.urls')),
     path('reporting/', include('apps.reporting.urls')),
 ]
 
@@ -15,17 +18,15 @@ if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
-
-    # Django Debug Toolbar (якщо встановлено)
     try:
         import debug_toolbar
+
         urlpatterns = [
-            path('__debug__/', include(debug_toolbar.urls)),
-        ] + urlpatterns
+                          path('__debug__/', include(debug_toolbar.urls)),
+                      ] + urlpatterns
     except ImportError:
         pass
 
-# Кастомізація адмін панелі
 admin.site.site_header = "АСООС 'ОБРІГ' - Адміністрування"
 admin.site.site_title = "АСООС 'ОБРІГ'"
 admin.site.index_title = "Панель управління"

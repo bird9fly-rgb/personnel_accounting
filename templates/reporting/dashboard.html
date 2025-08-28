@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Панель звітів - АСООС 'ОБРІГ'{% endblock %}
+
+{% block content %}
+<div class="bg-white p-6 rounded-lg shadow-lg">
+    <h1 class="text-3xl font-bold mb-6 text-gray-800">Панель звітів</h1>
+    <p class="text-gray-600 mb-8">Останнє оновлення: {{ last_update|date:"d.m.Y H:i" }}</p>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-blue-100 p-6 rounded-lg text-center">
+            <h2 class="text-xl font-semibold text-blue-800">Загальна чисельність</h2>
+            <p class="text-4xl font-bold text-blue-900 mt-2">{{ total_servicemen }}</p>
+        </div>
+        <div class="bg-yellow-100 p-6 rounded-lg text-center">
+            <h2 class="text-xl font-semibold text-yellow-800">Контракти закінчуються (30 дн)</h2>
+            <p class="text-4xl font-bold text-yellow-900 mt-2">{{ contracts_ending_soon }}</p>
+        </div>
+        <div class="bg-red-100 p-6 rounded-lg text-center">
+            <h2 class="text-xl font-semibold text-red-800">Протерміновані контракти</h2>
+            <p class="text-4xl font-bold text-red-900 mt-2">{{ expired_contracts }}</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <a href="{% url 'reporting:staffing-report' %}" class="block bg-gray-50 p-6 rounded-lg hover:bg-gray-100 transition">
+            <h3 class="text-xl font-semibold text-gray-800">Укомплектованість</h3>
+            <p class="text-gray-600 mt-2">Аналіз укомплектованості підрозділів особовим складом.</p>
+        </a>
+        <a href="{% url 'reporting:personnel-statistics' %}" class="block bg-gray-50 p-6 rounded-lg hover:bg-gray-100 transition">
+            <h3 class="text-xl font-semibold text-gray-800">Статистика по персоналу</h3>
+            <p class="text-gray-600 mt-2">Розподіл за званнями, віком та іншими параметрами.</p>
+        </a>
+        <a href="{% url 'reporting:contract-report' %}" class="block bg-gray-50 p-6 rounded-lg hover:bg-gray-100 transition">
+            <h3 class="text-xl font-semibold text-gray-800">Звіт по контрактах</h3>
+            <p class="text-gray-600 mt-2">Аналіз термінів дії та прогноз по закінченню контрактів.</p>
+        </a>
+        <a href="{% url 'reporting:service-history-report' %}" class="block bg-gray-50 p-6 rounded-lg hover:bg-gray-100 transition">
+            <h3 class="text-xl font-semibold text-gray-800">Історія служби</h3>
+            <p class="text-gray-600 mt-2">Звіт про кадрові зміни за обраний період.</p>
+        </a>
+        <a href="{% url 'reporting:comparison-report' %}" class="block bg-gray-50 p-6 rounded-lg hover:bg-gray-100 transition">
+            <h3 class="text-xl font-semibold text-gray-800">Порівняльний звіт</h3>
+            <p class="text-gray-600 mt-2">Порівняння ключових показників між підрозділами.</p>
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Порівняльний звіт - АСООС 'ОБРІГ'{% endblock %}
+
+{% block content %}
+<div class="bg-white p-6 rounded-lg shadow-lg">
+    <h1 class="text-3xl font-bold mb-6 text-gray-800">Порівняльний звіт по батальйонах</h1>
+
+    <div class="overflow-x-auto">
+        <table class="min-w-full bg-white">
+            <thead class="bg-gray-800 text-white">
+                <tr>
+                    <th class="py-3 px-4 uppercase font-semibold text-sm text-left">Підрозділ</th>
+                    <th class="py-3 px-4 uppercase font-semibold text-sm text-center">Штат</th>
+                    <th class="py-3 px-4 uppercase font-semibold text-sm text-center">Укомплектовано</th>
+                    <th class="py-3 px-4 uppercase font-semibold text-sm text-center">Вакансії</th>
+                    <th class="py-3 px-4 uppercase font-semibold text-sm text-center">% Укомплектованості</th>
+                </tr>
+            </thead>
+            <tbody class="text-gray-700">
+                {% for battalion in battalions_comparison %}
+                <tr class="hover:bg-gray-100 border-b">
+                    <td class="py-3 px-4 font-medium">{{ battalion.name }}</td>
+                    <td class="py-3 px-4 text-center">{{ battalion.data.total_positions }}</td>
+                    <td class="py-3 px-4 text-center">{{ battalion.data.filled_positions }}</td>
+                    <td class="py-3 px-4 text-center">{{ battalion.data.vacant_positions }}</td>
+                    <td class="py-3 px-4 text-center font-bold">{{ battalion.data.staffing_percentage }}%</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center py-4">Немає даних для порівняння.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

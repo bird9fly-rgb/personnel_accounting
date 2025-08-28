@@ -1,7 +1,5 @@
 from pathlib import Path
 from decouple import config
-# Додайте цей імпорт на початку файлу
-
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -31,7 +29,7 @@ INSTALLED_APPS = [
     'apps.personnel.apps.PersonnelConfig',
     'apps.reporting.apps.ReportingConfig',
     'apps.auditing.apps.AuditingConfig',
-    'apps.orders.apps.OrdersConfig',
+    'apps.documents.apps.DocumentsConfig',
 ]
 
 MIDDLEWARE = [
@@ -65,10 +63,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'personnel_accounting.wsgi.application'
 
-# Database
-# https://docs.djangoproject.com/en/5.0/ref/settings/#databases
-# Налаштування бази даних буде в development.py / production.py
-
 AUTH_USER_MODEL = 'users.User'
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -94,3 +88,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = "tailwind"
 CRISPY_TEMPLATE_PACK = "tailwind"
+
+# === Нові налаштування для автентифікації ===
+LOGIN_URL = 'users:login'
+LOGIN_REDIRECT_URL = 'personnel:serviceman-list'
+LOGOUT_REDIRECT_URL = 'users:login'

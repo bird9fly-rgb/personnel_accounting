@@ -1,173 +1,135 @@
 # apps/personnel/management/commands/import_personnel.py
 """
-Management command для імпорту даних військовослужбовців з CSV файлу
-Використання: python manage.py import_personnel path/to/file.csv
+Management command для імпорту даних військовослужбовців з CSV файлу.
+Використання: python manage.py import_personnel /шлях/до/файлу.csv
 """
-
-from django.core.management.base import BaseCommand, CommandError
-from django.db import transaction
-from apps.personnel.models import Serviceman, Rank
-from apps.staffing.models import Position
 import csv
 from datetime import datetime
+from django.core.management.base import BaseCommand, CommandError
+from django.db import transaction
+from apps.personnel.models import Serviceman, Rank, Education, FamilyMember
+from apps.staffing.models import Position
 
 
 class Command(BaseCommand):
-    help = 'Імпорт даних військовослужбовців з CSV файлу'
+    help = 'Імпортує дані військовослужбовців з CSV файлу, що відповідає структурі Електронного журналу'
 
     def add_arguments(self, parser):
-        parser.add_argument(
-            'csv_file',
-            type=str,
-            help='Шлях до CSV файлу з даними'
-        )
+        parser.add_argument('csv_file', type=str, help='Шлях до CSV файлу з даними (аркуш "2. ООС")')
         parser.add_argument(
             '--update',
             action='store_true',
-            help='Оновити існуючі записи замість пропуску'
+            help='Оновити існуючі записи, якщо знайдено військовослужбовця за РНОКПП.'
         )
         parser.add_argument(
             '--dry-run',
             action='store_true',
-            help='Тестовий запуск без збереження даних'
+            help='Тестовий запуск без збереження даних до БД.'
         )
 
+    @transaction.atomic
     def handle(self, *args, **options):
-        csv_file = options['csv_file']
-        update_existing = options.get('update', False)
-        dry_run = options.get('dry_run', False)
+        file_path = options['csv_file']
+        update_existing = options['update']
+        dry_run = options['dry_run']
 
+        self.stdout.write(self.style.SUCCESS(f'Починаю імпорт з файлу: {file_path}'))
         if dry_run:
-            self.stdout.write(self.style.WARNING('🔍 ТЕСТОВИЙ РЕЖИМ - дані не будуть збережені'))
+            self.stdout.write(self.style.WARNING('РЕЖИМ ТЕСТОВОГО ЗАПУСКУ: Зміни не буде збережено.'))
+
+        # Словники для кешування, щоб уникнути повторних запитів до БД
+        ranks_cache = {rank.name: rank for rank in Rank.objects.all()}
+        positions_cache = {pos.position_index: pos for pos in Position.objects.all()}
+
+        processed_count = 0
+        created_count = 0
+        updated_count = 0
+        skipped_count = 0
+        error_count = 0
 
         try:
-            with open(csv_file, 'r', encoding='utf-8') as file:
+            with open(file_path, 'r', encoding='utf-8') as file:
+                # Пропускаємо перші 3 рядки заголовку, як у вашому файлі
+                for _ in range(3):
+                    next(file)
+
                 reader = csv.DictReader(file)
+                for row in reader:
+                    processed_count += 1
+                    tax_id = row.get('РНОКПП  (за наявності)')
+                    if not tax_id:
+                        self.stdout.write(
+                            self.style.ERROR(f'Рядок {processed_count + 3}: Пропущено - відсутній РНОКПП.'))
+                        error_count += 1
+                        continue
 
-                created_count = 0
-                updated_count = 0
-                skipped_count = 0
-                error_count = 0
+                    try:
+                        serviceman = Serviceman.objects.filter(tax_id_number=tax_id).first()
 
-                with transaction.atomic():
-                    for row_num, row in enumerate(reader, start=2):  # Починаємо з 2 (1 - заголовки)
-                        try:
-                            # Обробка даних
-                            result = self.process_row(row, update_existing)
+                        if serviceman and not update_existing:
+                            skipped_count += 1
+                            continue
 
-                            if result == 'created':
-                                created_count += 1
-                                self.stdout.write(
-                                    f'✅ Рядок {row_num}: Створено {row.get("Прізвище")} {row.get("Ім\'я")}')
-                            elif result == 'updated':
-                                updated_count += 1
-                                self.stdout.write(
-                                    f'🔄 Рядок {row_num}: Оновлено {row.get("Прізвище")} {row.get("Ім\'я")}')
-                            elif result == 'skipped':
-                                skipped_count += 1
-                                self.stdout.write(f'⏭️ Рядок {row_num}: Пропущено (вже існує)')
+                        # Розбір ПІБ
+                        full_name = row['ПРІЗВИЩЕ (за наявності) Ім\'я По батькові (за наявності)'].split()
+                        last_name = full_name[0]
+                        first_name = full_name[1] if len(full_name) > 1 else ''
+                        middle_name = ' '.join(full_name[2:])
 
-                        except Exception as e:
-                            error_count += 1
-                            self.stdout.write(
-                                self.style.ERROR(f'❌ Рядок {row_num}: Помилка - {str(e)}')
-                            )
+                        # Отримання пов'язаних об'єктів з кешу
+                        rank = ranks_cache.get(row['Звання'])
+                        position_index = row['Індекс посади /\\nІндексм посад, які обіймав(ла)'].split('\\n')[0]
+                        position = positions_cache.get(position_index)
 
-                    if dry_run:
-                        transaction.set_rollback(True)
-                        self.stdout.write(self.style.WARNING('\n🔙 Відкат транзакції (тестовий режим)'))
+                        if not rank:
+                            raise ValueError(f"Звання '{row['Звання']}' не знайдено у довіднику.")
 
-                # Виводимо статистику
-                self.stdout.write('\n' + '=' * 50)
-                self.stdout.write('📊 РЕЗУЛЬТАТИ ІМПОРТУ:')
-                self.stdout.write('=' * 50)
-                self.stdout.write(self.style.SUCCESS(f'✅ Створено: {created_count}'))
-                self.stdout.write(self.style.WARNING(f'🔄 Оновлено: {updated_count}'))
-                self.stdout.write(f'⏭️ Пропущено: {skipped_count}')
-                self.stdout.write(self.style.ERROR(f'❌ Помилок: {error_count}'))
-                self.stdout.write('=' * 50)
+                        # Створення або оновлення об'єкта
+                        defaults = {
+                            'rank': rank,
+                            'last_name': last_name,
+                            'first_name': first_name,
+                            'middle_name': middle_name,
+                            'date_of_birth': datetime.strptime(row['Дата народження'], '%Y-%m-%d').date(),
+                            'place_of_birth': row['Місце народження'],
+                            'passport_number': row[
+                                'Серія (за наявності) і номер документа, що посвідчує особу та назва документа'],
+                            'personal_number': tax_id,
+                            'enlistment_date': datetime.strptime(
+                                row['Ким і коли призваний (прийнятий) на військову службу'].split(',')[-1].strip(),
+                                '%Y-%m-%d').date(),
+                            'enlistment_authority': ','.join(
+                                row['Ким і коли призваний (прийнятий) на військову службу'].split(',')[:-1]),
+                            'position': position,
+                        }
 
-                if not dry_run and (created_count > 0 or updated_count > 0):
-                    self.stdout.write(self.style.SUCCESS('✅ Імпорт завершено успішно!'))
+                        if serviceman:
+                            # Оновлення
+                            for key, value in defaults.items():
+                                setattr(serviceman, key, value)
+                            serviceman.save()
+                            updated_count += 1
+                        else:
+                            # Створення
+                            Serviceman.objects.create(tax_id_number=tax_id, **defaults)
+                            created_count += 1
+
+                    except Exception as e:
+                        self.stdout.write(self.style.ERROR(f'Рядок {processed_count + 3}: Помилка - {e}'))
+                        error_count += 1
 
         except FileNotFoundError:
-            raise CommandError(f'Файл {csv_file} не знайдено')
+            raise CommandError(f'Файл не знайдено: {file_path}')
         except Exception as e:
-            raise CommandError(f'Помилка при читанні файлу: {str(e)}')
+            raise CommandError(f'Загальна помилка обробки файлу: {e}')
 
-    def process_row(self, row, update_existing):
-        """Обробка одного рядка з CSV"""
-        # Очищаємо пробіли з ключів та значень
-        row = {k.strip(): v.strip() for k, v in row.items()}
+        if dry_run:
+            transaction.set_rollback(True)
+            self.stdout.write(self.style.WARNING('Відкат транзакції. Жодних змін не було внесено.'))
 
-        # Обов'язкові поля
-        required_fields = ['Прізвище', "Ім'я", 'РНОКПП', 'Дата народження', 'Звання']
-        for field in required_fields:
-            if not row.get(field):
-                raise ValueError(f"Відсутнє обов'язкове поле: {field}")
-
-        # Парсимо дату народження
-        try:
-            date_of_birth = datetime.strptime(row['Дата народження'], '%d.%m.%Y').date()
-        except ValueError:
-            raise ValueError(f"Неправильний формат дати народження: {row['Дата народження']}")
-
-        # Знаходимо звання
-        try:
-            rank = Rank.objects.get(name=row['Звання'])
-        except Rank.DoesNotExist:
-            raise ValueError(f"Звання '{row['Звання']}' не знайдено")
-
-        # Знаходимо посаду якщо вказана
-        position = None
-        if row.get('Індекс посади'):
-            try:
-                position = Position.objects.get(position_index=row['Індекс посади'])
-            except Position.DoesNotExist:
-                self.stdout.write(
-                    self.style.WARNING(f"Посада з індексом '{row['Індекс посади']}' не знайдена")
-                )
-
-        # Перевіряємо чи існує військовослужбовець
-        serviceman = None
-        if row.get('РНОКПП'):
-            serviceman = Serviceman.objects.filter(tax_id_number=row['РНОКПП']).first()
-
-        if serviceman:
-            if update_existing:
-                # Оновлюємо існуючий запис
-                serviceman.last_name = row['Прізвище']
-                serviceman.first_name = row["Ім'я"]
-                serviceman.middle_name = row.get('По батькові', '')
-                serviceman.date_of_birth = date_of_birth
-                serviceman.place_of_birth = row.get('Місце народження', '')
-                serviceman.passport_number = row.get('Паспорт', '')
-                serviceman.rank = rank
-                if position:
-                    serviceman.position = position
-                serviceman.save()
-                return 'updated'
-            else:
-                return 'skipped'
-        else:
-            # Створюємо новий запис
-            Serviceman.objects.create(
-                last_name=row['Прізвище'],
-                first_name=row["Ім'я"],
-                middle_name=row.get('По батькові', ''),
-                date_of_birth=date_of_birth,
-                place_of_birth=row.get('Місце народження', ''),
-                tax_id_number=row.get('РНОКПП'),
-                passport_number=row.get('Паспорт', ''),
-                rank=rank,
-                position=position
-            )
-            return 'created'
-
-
-# Приклад CSV файлу:
-"""
-Прізвище,Ім'я,По батькові,Дата народження,Місце народження,РНОКПП,Паспорт,Звання,Індекс посади
-Шевченко,Олександр,Іванович,15.03.1990,м. Київ,3012345678,АА123456,Капітан,П-00001
-Коваленко,Петро,Васильович,22.07.1985,м. Харків,2987654321,ВВ654321,Майор,П-00002
-"""
+        self.stdout.write(self.style.SUCCESS('----- РЕЗУЛЬТАТИ ІМПОРТУ -----'))
+        self.stdout.write(f'Оброблено рядків: {processed_count}')
+        self.stdout.write(f'Створено нових записів: {created_count}')
+        self.stdout.write(f'Оновлено існуючих записів: {updated_count}')
+        self.stdout.write(f'Пропущено (дублікати): {skipped_count}')
+        self.stdout.write(self.style.ERROR(f'Помилок: {error_count}'))

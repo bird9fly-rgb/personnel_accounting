@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ page_title }} - АСООС 'ОБРІГ'{% endblock %}
+
+{% block content %}
+<div class="bg-white p-8 rounded-lg shadow-lg max-w-2xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6 text-gray-800">{{ page_title }}</h1>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div class="space-y-4">
+            {{ form|crispy }}
+        </div>
+
+        <div class="mt-8 flex justify-end">
+            <a href="{% if object %}{% url 'documents:report-detail' object.pk %}{% else %}{% url 'documents:report-list' %}{% endif %}" class="text-gray-600 py-2 px-4 mr-2">
+                Скасувати
+            </a>
+            <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700">
+                Зберегти
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

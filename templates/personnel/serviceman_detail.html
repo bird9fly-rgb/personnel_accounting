@@ -4,47 +4,96 @@
 
 {% block content %}
 <div class="bg-white p-8 rounded-lg shadow-lg max-w-4xl mx-auto">
-    <div class="flex items-center space-x-6 mb-6">
-        <div class="w-32 h-32 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+    <div class="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6 mb-8">
+        <div class="w-32 h-32 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
             {% if serviceman.photo %}
                 <img src="{{ serviceman.photo.url }}" alt="Фото" class="w-full h-full object-cover">
             {% else %}
-                <span class="text-gray-500">Фото</span>
+                <span class="text-gray-500 text-sm">Немає фото</span>
             {% endif %}
         </div>
         <div>
-            <h1 class="text-4xl font-bold text-gray-800">{{ serviceman.full_name }}</h1>
-            <p class="text-2xl text-gray-600">{{ serviceman.rank }}</p>
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800 text-center md:text-left">{{ serviceman.full_name }}</h1>
+            <p class="text-xl md:text-2xl text-gray-600 text-center md:text-left">{{ serviceman.rank }}</p>
+            <p class="text-md text-gray-500 text-center md:text-left">Особистий номер: {{ serviceman.personal_number|default:"Не присвоєно" }}</p>
         </div>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="bg-gray-50 p-4 rounded-md">
-            <h2 class="text-xl font-semibold mb-2 text-gray-700">Основна інформація</h2>
-            <p><strong>Посада:</strong> {{ serviceman.position.name|default:"Не призначено" }}</p>
-            <p><strong>Підрозділ:</strong> {{ serviceman.position.unit.name|default:"N/A" }}</p>
-            <p><strong>Дата народження:</strong> {{ serviceman.date_of_birth|date:"d.m.Y" }}</p>
-            <p><strong>Місце народження:</strong> {{ serviceman.place_of_birth }}</p>
+            <h2 class="text-xl font-semibold mb-3 text-gray-700 border-b pb-2">Службова інформація</h2>
+            <div class="space-y-2 text-sm">
+                <p><strong>Статус:</strong> <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">{{ serviceman.get_status_display }}</span></p>
+                <p><strong>Посада:</strong> {{ serviceman.position.name|default:"Не призначено" }}</p>
+                <p><strong>Підрозділ:</strong> {{ serviceman.position.unit.name|default:"N/A" }}</p>
+                <p><strong>Дата призову/прийняття:</strong> {{ serviceman.enlistment_date|date:"d.m.Y"|default:"Не вказано" }}</p>
+                <p><strong>Ким призваний/прийнятий:</strong> {{ serviceman.enlistment_authority|default:"Не вказано" }}</p>
+            </div>
         </div>
         <div class="bg-gray-50 p-4 rounded-md">
-            <h2 class="text-xl font-semibold mb-2 text-gray-700">Ідентифікаційні дані</h2>
-            <p><strong>РНОКПП:</strong> {{ serviceman.tax_id_number|default:"Не вказано" }}</p>
-            <p><strong>Паспорт:</strong> {{ serviceman.passport_number|default:"Не вказано" }}</p>
+            <h2 class="text-xl font-semibold mb-3 text-gray-700 border-b pb-2">Ідентифікаційні дані</h2>
+            <div class="space-y-2 text-sm">
+                <p><strong>Дата народження:</strong> {{ serviceman.date_of_birth|date:"d.m.Y" }}</p>
+                <p><strong>Місце народження:</strong> {{ serviceman.place_of_birth }}</p>
+                <p><strong>РНОКПП:</strong> {{ serviceman.tax_id_number|default:"Не вказано" }}</p>
+                <p><strong>Паспорт:</strong> {{ serviceman.passport_number|default:"Не вказано" }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-8">
+        <h2 class="text-2xl font-semibold mb-4 text-gray-700">Освіта</h2>
+        <div class="space-y-3">
+            {% for edu in serviceman.education_history.all %}
+            <div class="bg-gray-100 p-3 rounded-md">
+                <p class="font-semibold">{{ edu.institution_name }} ({{ edu.graduation_year }} р.)</p>
+                <p class="text-sm text-gray-600">Рівень: {{ edu.get_level_display }} | Спеціальність: {{ edu.specialty|default:"Не вказано" }}</p>
+            </div>
+            {% empty %}
+            <p class="text-gray-500 text-sm">Немає записів про освіту.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="mt-8">
+        <h2 class="text-2xl font-semibold mb-4 text-gray-700">Члени сім'ї</h2>
+        <div class="overflow-x-auto">
+            <table class="min-w-full bg-white text-sm">
+                <thead class="bg-gray-200">
+                    <tr>
+                        <th class="py-2 px-3 text-left font-semibold">Ступінь споріднення</th>
+                        <th class="py-2 px-3 text-left font-semibold">ПІБ</th>
+                        <th class="py-2 px-3 text-left font-semibold">Дата народження</th>
+                    </tr>
+                </thead>
+                <tbody class="text-gray-700">
+                    {% for member in serviceman.family_members.all %}
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="py-2 px-3">{{ member.get_relationship_display }}</td>
+                        <td class="py-2 px-3">{{ member.full_name }}</td>
+                        <td class="py-2 px-3">{{ member.date_of_birth|date:"d.m.Y" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% if not serviceman.family_members.all %}
+                <p class="text-gray-500 text-sm mt-2">Немає даних про членів сім'ї.</p>
+            {% endif %}
         </div>
     </div>
 
     <div class="mt-8">
         <h2 class="text-2xl font-semibold mb-4 text-gray-700">Історія служби</h2>
-        <ul class="space-y-2">
+        <div class="space-y-3">
             {% for event in serviceman.service_history.all %}
-            <li class="bg-gray-100 p-3 rounded-md">
-                <p class="font-semibold">{{ event.get_event_type_display }} - {{ event.event_date|date:"d.m.Y" }}</p>
-                <p class="text-sm text-gray-600">Наказ: {{ event.order_reference }}</p>
-            </li>
+            <div class="bg-gray-100 p-3 rounded-md">
+                <p class="font-semibold">{{ event.get_event_type_display }} - <span class="font-normal">{{ event.event_date|date:"d.m.Y" }}</span></p>
+                <p class="text-sm text-gray-600">Наказ: {{ event.order_reference }} | Деталі: {{ event.details }}</p>
+            </div>
             {% empty %}
-            <p>Немає записів в історії служби.</p>
+            <p class="text-gray-500 text-sm">Немає записів в історії служби.</p>
             {% endfor %}
-        </ul>
+        </div>
     </div>
 </div>
 {% endblock %}

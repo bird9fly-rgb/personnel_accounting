@@ -1,285 +1,39 @@
-<!-- templates/reporting/contract_report.html -->
 {% extends "base.html" %}
 
 {% block title %}Звіт по контрактах - АСООС 'ОБРІГ'{% endblock %}
 
 {% block content %}
-<div class="container mx-auto p-6">
-    <div class="bg-white rounded-lg shadow-lg p-6">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-3xl font-bold text-gray-800">Звіт по контрактах</h1>
-            <a href="{% url 'reporting:export-report' 'contracts' %}?format=excel"
-               class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">
-                Експорт в Excel
-            </a>
-        </div>
+<div class="bg-white p-6 rounded-lg shadow-lg">
+    <h1 class="text-3xl font-bold mb-6 text-gray-800">Звіт по контрактах</h1>
 
-        <!-- Карточки статистики -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <!-- Закінчуються протягом 30 днів -->
-            <div class="bg-orange-50 border-l-4 border-orange-500 p-4">
-                <h3 class="text-lg font-semibold text-gray-800">Закінчуються до 30 днів</h3>
-                <p class="text-3xl font-bold text-orange-600">{{ contract_status.ending_30_days.count }}</p>
-                <p class="text-sm text-gray-600">контрактів</p>
+    <div class="mb-8">
+        <h2 class="text-2xl font-semibold mb-4">Контракти, що закінчуються найближчим часом</h2>
+        <div class="space-y-4">
+            <div>
+                <h3 class="font-semibold text-lg">Закінчуються впродовж 30 днів ({{ contract_status.ending_30_days.count }})</h3>
+                {% if contract_status.ending_30_days.list %}
+                <ul class="list-disc list-inside mt-2">
+                    {% for contract in contract_status.ending_30_days.list %}
+                    <li>{{ contract.serviceman.full_name }} ({{ contract.serviceman.rank }}) - до {{ contract.end_date|date:"d.m.Y" }}</li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-gray-500">Немає.</p>
+                {% endif %}
             </div>
-
-            <!-- Закінчуються протягом 31-90 днів -->
-            <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4">
-                <h3 class="text-lg font-semibold text-gray-800">Закінчуються 31-90 днів</h3>
-                <p class="text-3xl font-bold text-yellow-600">{{ contract_status.ending_90_days.count }}</p>
-                <p class="text-sm text-gray-600">контрактів</p>
-            </div>
-
-            <!-- Прострочені -->
-            <div class="bg-red-50 border-l-4 border-red-500 p-4">
-                <h3 class="text-lg font-semibold text-gray-800">Прострочені</h3>
-                <p class="text-3xl font-bold text-red-600">{{ contract_status.expired.count }}</p>
-                <p class="text-sm text-gray-600">контрактів</p>
-            </div>
-        </div>
-
-        <!-- Табби для різних категорій -->
-        <div class="mb-6">
-            <div class="border-b border-gray-200">
-                <nav class="-mb-px flex space-x-8">
-                    <button class="tab-button active py-2 px-1 border-b-2 border-blue-500 font-medium text-sm text-blue-600"
-                            data-tab="ending-30">
-                        Закінчуються (30 днів)
-                    </button>
-                    <button class="tab-button py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                            data-tab="ending-90">
-                        Закінчуються (31-90 днів)
-                    </button>
-                    <button class="tab-button py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                            data-tab="expired">
-                        Прострочені
-                    </button>
-                    <button class="tab-button py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                            data-tab="forecast">
-                        Прогноз на 12 місяців
-                    </button>
-                </nav>
-            </div>
-        </div>
-
-        <!-- Контент табів -->
-        <!-- Закінчуються протягом 30 днів -->
-        <div id="ending-30" class="tab-content">
-            <h3 class="text-xl font-semibold mb-3 text-gray-800">Контракти, що закінчуються протягом 30 днів</h3>
-            {% if contract_status.ending_30_days.list %}
-            <div class="overflow-x-auto">
-                <table class="min-w-full bg-white border">
-                    <thead class="bg-gray-100">
-                        <tr>
-                            <th class="px-4 py-2 border text-left">ПІБ</th>
-                            <th class="px-4 py-2 border text-left">Звання</th>
-                            <th class="px-4 py-2 border text-left">Посада</th>
-                            <th class="px-4 py-2 border text-center">Дата початку</th>
-                            <th class="px-4 py-2 border text-center">Дата закінчення</th>
-                            <th class="px-4 py-2 border text-center">Днів до закінчення</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for contract in contract_status.ending_30_days.list %}
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-4 py-2 border">
-                                <a href="{% url 'personnel:serviceman-detail' contract.serviceman.pk %}" class="text-blue-600 hover:underline">
-                                    {{ contract.serviceman.full_name }}
-                                </a>
-                            </td>
-                            <td class="px-4 py-2 border">{{ contract.serviceman.rank }}</td>
-                            <td class="px-4 py-2 border">{{ contract.serviceman.position.name|default:"—" }}</td>
-                            <td class="px-4 py-2 border text-center">{{ contract.start_date|date:"d.m.Y" }}</td>
-                            <td class="px-4 py-2 border text-center font-semibold text-orange-600">{{ contract.end_date|date:"d.m.Y" }}</td>
-                            <td class="px-4 py-2 border text-center">
-                                <span class="px-2 py-1 bg-orange-100 text-orange-800 rounded-full text-sm font-semibold">
-                                    {{ contract.end_date|timeuntil }}
-                                </span>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <p class="text-gray-500">Немає контрактів, що закінчуються протягом 30 днів</p>
-            {% endif %}
-        </div>
-
-        <!-- Закінчуються протягом 31-90 днів -->
-        <div id="ending-90" class="tab-content hidden">
-            <h3 class="text-xl font-semibold mb-3 text-gray-800">Контракти, що закінчуються протягом 31-90 днів</h3>
-            {% if contract_status.ending_90_days.list %}
-            <div class="overflow-x-auto">
-                <table class="min-w-full bg-white border">
-                    <thead class="bg-gray-100">
-                        <tr>
-                            <th class="px-4 py-2 border text-left">ПІБ</th>
-                            <th class="px-4 py-2 border text-left">Звання</th>
-                            <th class="px-4 py-2 border text-left">Посада</th>
-                            <th class="px-4 py-2 border text-center">Дата початку</th>
-                            <th class="px-4 py-2 border text-center">Дата закінчення</th>
-                            <th class="px-4 py-2 border text-center">Днів до закінчення</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for contract in contract_status.ending_90_days.list %}
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-4 py-2 border">
-                                <a href="{% url 'personnel:serviceman-detail' contract.serviceman.pk %}" class="text-blue-600 hover:underline">
-                                    {{ contract.serviceman.full_name }}
-                                </a>
-                            </td>
-                            <td class="px-4 py-2 border">{{ contract.serviceman.rank }}</td>
-                            <td class="px-4 py-2 border">{{ contract.serviceman.position.name|default:"—" }}</td>
-                            <td class="px-4 py-2 border text-center">{{ contract.start_date|date:"d.m.Y" }}</td>
-                            <td class="px-4 py-2 border text-center font-semibold text-yellow-600">{{ contract.end_date|date:"d.m.Y" }}</td>
-                            <td class="px-4 py-2 border text-center">
-                                <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-semibold">
-                                    {{ contract.end_date|timeuntil }}
-                                </span>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <p class="text-gray-500">Немає контрактів, що закінчуються протягом 31-90 днів</p>
-            {% endif %}
-        </div>
-
-        <!-- Прострочені контракти -->
-        <div id="expired" class="tab-content hidden">
-            <h3 class="text-xl font-semibold mb-3 text-gray-800">Прострочені контракти</h3>
-            {% if contract_status.expired.list %}
-            <div class="overflow-x-auto">
-                <table class="min-w-full bg-white border">
-                    <thead class="bg-gray-100">
-                        <tr>
-                            <th class="px-4 py-2 border text-left">ПІБ</th>
-                            <th class="px-4 py-2 border text-left">Звання</th>
-                            <th class="px-4 py-2 border text-left">Посада</th>
-                            <th class="px-4 py-2 border text-center">Дата закінчення</th>
-                            <th class="px-4 py-2 border text-center">Прострочено днів</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for contract in contract_status.expired.list %}
-                        <tr class="hover:bg-red-50">
-                            <td class="px-4 py-2 border">
-                                <a href="{% url 'personnel:serviceman-detail' contract.serviceman.pk %}" class="text-blue-600 hover:underline">
-                                    {{ contract.serviceman.full_name }}
-                                </a>
-                            </td>
-                            <td class="px-4 py-2 border">{{ contract.serviceman.rank }}</td>
-                            <td class="px-4 py-2 border">{{ contract.serviceman.position.name|default:"—" }}</td>
-                            <td class="px-4 py-2 border text-center font-semibold text-red-600">{{ contract.end_date|date:"d.m.Y" }}</td>
-                            <td class="px-4 py-2 border text-center">
-                                <span class="px-2 py-1 bg-red-100 text-red-800 rounded-full text-sm font-semibold">
-                                    {{ contract.end_date|timesince }} тому
-                                </span>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <p class="text-gray-500">Немає прострочених контрактів</p>
-            {% endif %}
-        </div>
-
-        <!-- Прогноз -->
-        <div id="forecast" class="tab-content hidden">
-            <h3 class="text-xl font-semibold mb-3 text-gray-800">Прогноз закінчення контрактів на 12 місяців</h3>
-
-            <!-- Графік -->
-            <canvas id="forecastChart" height="100"></canvas>
-
-            <!-- Таблиця -->
-            <div class="mt-6 overflow-x-auto">
-                <table class="min-w-full bg-white border">
-                    <thead class="bg-gray-100">
-                        <tr>
-                            <th class="px-4 py-2 border text-left">Місяць</th>
-                            <th class="px-4 py-2 border text-center">Кількість контрактів</th>
-                            <th class="px-4 py-2 border text-center">Візуалізація</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for month_data in forecast %}
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-4 py-2 border">{{ month_data.month }}</td>
-                            <td class="px-4 py-2 border text-center font-semibold">{{ month_data.count }}</td>
-                            <td class="px-4 py-2 border">
-                                <div class="w-full bg-gray-200 rounded-full h-4">
-                                    <div class="bg-blue-600 h-4 rounded-full"
-                                         style="width: {% widthratio month_data.count 20 100 %}%"></div>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <div class="pt-4 border-t">
+                <h3 class="font-semibold text-lg">Протерміновані контракти ({{ contract_status.expired.count }})</h3>
+                {% if contract_status.expired.list %}
+                <ul class="list-disc list-inside mt-2">
+                    {% for contract in contract_status.expired.list %}
+                    <li>{{ contract.serviceman.full_name }} ({{ contract.serviceman.rank }}) - закінчився {{ contract.end_date|date:"d.m.Y" }}</li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-gray-500">Немає.</p>
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-// Табби
-document.querySelectorAll('.tab-button').forEach(button => {
-    button.addEventListener('click', () => {
-        // Ховаємо всі контенти
-        document.querySelectorAll('.tab-content').forEach(content => {
-            content.classList.add('hidden');
-        });
-
-        // Деактивуємо всі кнопки
-        document.querySelectorAll('.tab-button').forEach(btn => {
-            btn.classList.remove('active', 'border-blue-500', 'text-blue-600');
-            btn.classList.add('border-transparent', 'text-gray-500');
-        });
-
-        // Активуємо поточну кнопку
-        button.classList.add('active', 'border-blue-500', 'text-blue-600');
-        button.classList.remove('border-transparent', 'text-gray-500');
-
-        // Показуємо відповідний контент
-        document.getElementById(button.dataset.tab).classList.remove('hidden');
-    });
-});
-
-// Графік прогнозу
-const forecastData = {{ forecast|safe|default:"[]" }};
-if (forecastData.length > 0) {
-    const ctx = document.getElementById('forecastChart').getContext('2d');
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: forecastData.map(item => item.month),
-            datasets: [{
-                label: 'Кількість контрактів',
-                data: forecastData.map(item => item.count),
-                backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                borderColor: 'rgba(59, 130, 246, 1)',
-                borderWidth: 2,
-                tension: 0.4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                y: { beginAtZero: true }
-            }
-        }
-    });
-}
-</script>
 {% endblock %}

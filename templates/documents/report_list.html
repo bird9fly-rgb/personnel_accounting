@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Журнал реєстрації рапортів - АСООС 'ОБРІГ'{% endblock %}
+
+{% block content %}
+<div class="bg-white p-6 rounded-lg shadow-lg">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-800">Журнал реєстрації рапортів</h1>
+        <a href="{% url 'documents:report-create' %}" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+            Зареєструвати новий рапорт
+        </a>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="mb-4 p-4 rounded-md bg-green-100 text-green-700">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="overflow-x-auto">
+        <table class="min-w-full bg-white">
+            <thead class="bg-gray-800 text-white text-sm">
+                <tr>
+                    <th class="py-2 px-3 text-left font-semibold">Реєстр. №</th>
+                    <th class="py-2 px-3 text-left font-semibold">Дата подання</th>
+                    <th class="py-2 px-3 text-left font-semibold">Автор</th>
+                    <th class="py-2 px-3 text-left font-semibold">Звання</th>
+                    <th class="py-2 px-3 text-left font-semibold">Тема</th>
+                    <th class="py-2 px-3 text-left font-semibold">Статус</th>
+                </tr>
+            </thead>
+            <tbody class="text-gray-700 text-sm">
+                {% for report in reports %}
+                <tr class="hover:bg-gray-100 border-b">
+                    <td class="py-2 px-3">
+                        <a href="{% url 'documents:report-detail' report.pk %}" class="text-blue-600 hover:underline font-bold">
+                            {{ report.registration_number }}
+                        </a>
+                    </td>
+                    <td class="py-2 px-3">{{ report.submission_date|date:"d.m.Y" }}</td>
+                    <td class="py-2 px-3">{{ report.author.full_name }}</td>
+                    <td class="py-2 px-3">{{ report.author.rank }}</td>
+                    <td class="py-2 px-3">{{ report.summary }}</td>
+                    <td class="py-2 px-3">
+                        <span class="px-2 py-1 text-xs font-semibold rounded-full
+                            {% if report.status == 'APPROVED' %}bg-green-100 text-green-800
+                            {% elif report.status == 'REJECTED' %}bg-red-100 text-red-800
+                            {% elif report.status == 'UNDER_REVIEW' %}bg-yellow-100 text-yellow-800
+                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {{ report.get_status_display }}
+                        </span>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-4">Немає жодного зареєстрованого рапорту.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

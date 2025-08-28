@@ -1,0 +1,45 @@
+<div class="overflow-x-auto">
+    <h2 class="text-xl font-semibold mb-3 text-gray-700">{{ caption }}</h2>
+    <table class="min-w-full bg-white text-sm">
+        <thead class="bg-gray-100">
+            <tr>
+                <th class="py-2 px-3 text-left font-semibold">#</th>
+                <th class="py-2 px-3 text-left font-semibold">ПІБ</th>
+                <th class="py-2 px-3 text-left font-semibold">Особистий номер</th>
+                <th class="py-2 px-3 text-left font-semibold">Звання</th>
+                <th class="py-2 px-3 text-left font-semibold">Посада</th>
+                <th class="py-2 px-3 text-left font-semibold">Підрозділ</th>
+                <th class="py-2 px-3 text-left font-semibold">Статус</th>
+            </tr>
+        </thead>
+        <tbody class="text-gray-700">
+            {% for serviceman in servicemen %}
+            <tr class="border-b hover:bg-gray-50">
+                <td class="py-2 px-3">{{ forloop.counter }}</td>
+                <td class="py-2 px-3">
+                    <a href="{% url 'personnel:serviceman-detail' serviceman.pk %}" class="text-blue-600 hover:underline font-medium">
+                        {{ serviceman.full_name }}
+                    </a>
+                </td>
+                <td class="py-2 px-3">{{ serviceman.personal_number }}</td>
+                <td class="py-2 px-3">{{ serviceman.rank }}</td>
+                <td class="py-2 px-3">{{ serviceman.position.name|default:"—" }}</td>
+                <td class="py-2 px-3">{{ serviceman.position.unit.name|default:"—" }}</td>
+                <td class="py-2 px-3">
+                    <span class="px-2 py-1 text-xs font-semibold rounded-full
+                        {% if serviceman.status == 'ON_DUTY' %}bg-green-100 text-green-800
+                        {% elif serviceman.status == 'SICK_LEAVE' or serviceman.status == 'ON_LEAVE' %}bg-yellow-100 text-yellow-800
+                        {% elif serviceman.status == 'AWOL' %}bg-orange-100 text-orange-800
+                        {% else %}bg-red-100 text-red-800{% endif %}">
+                        {{ serviceman.get_status_display }}
+                    </span>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" class="text-center py-4 text-gray-500">Немає даних для цієї категорії.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

@@ -1,6 +1,7 @@
 # apps/personnel/models.py
 from django.db import models
 from django.conf import settings
+from django.core.exceptions import ValidationError
 
 class Rank(models.Model):
     """Військове звання - довідник"""
@@ -40,11 +41,19 @@ class Serviceman(models.Model):
         verbose_name="Посада"
     )
 
-    # Персональні дані згідно з Наказом № 687
+    # Персональні дані згідно з Наказом № 280
     rank = models.ForeignKey(Rank, on_delete=models.PROTECT, verbose_name="Військове звання")
     last_name = models.CharField("Прізвище", max_length=100)
     first_name = models.CharField("Ім'я", max_length=100)
     middle_name = models.CharField("По батькові", max_length=100, blank=True)
+
+    personal_number = models.CharField(
+        "Особистий номер (ідентифікаційний жетон)",
+        max_length=20,
+        unique=True,
+        null=True, blank=True,
+        help_text="Відповідає РНОКПП або серії та номеру паспорта"
+    ) # Нове поле
 
     status = models.CharField(
         "Статус",
@@ -57,6 +66,10 @@ class Serviceman(models.Model):
     place_of_birth = models.CharField("Місце народження", max_length=255)
     tax_id_number = models.CharField("РНОКПП", max_length=10, unique=True, null=True, blank=True)
     passport_number = models.CharField("Номер документа, що посвідчує особу", max_length=50)
+
+    # Дані про призов/прийняття на службу (нові поля)
+    enlistment_date = models.DateField("Дата призову (прийняття) на службу", null=True, blank=True)
+    enlistment_authority = models.CharField("Орган, що здійснив призов (прийняття)", max_length=255, blank=True)
 
     photo = models.ImageField("Фото", upload_to='servicemen_photos/', null=True, blank=True)
 
@@ -71,6 +84,63 @@ class Serviceman(models.Model):
     @property
     def full_name(self):
         return f"{self.last_name} {self.first_name} {self.middle_name}".strip()
+
+    def save(self, *args, **kwargs):
+        # Автоматично заповнюємо personal_number з РНОКПП, якщо він порожній
+        if not self.personal_number and self.tax_id_number:
+            self.personal_number = self.tax_id_number
+        super().save(*args, **kwargs)
+
+
+class Education(models.Model):
+    """Освіта військовослужбовця (нова модель)"""
+    class EducationLevel(models.TextChoices):
+        SECONDARY = 'SECONDARY', 'Повна загальна середня'
+        VOCATIONAL = 'VOCATIONAL', 'Професійно-технічна'
+        JUNIOR_COLLEGE = 'JUNIOR_COLLEGE', 'Фахова передвища'
+        BACHELOR = 'BACHELOR', 'Бакалавр'
+        MASTER = 'MASTER', 'Магістр'
+        PHD = 'PHD', 'Доктор філософії'
+
+    serviceman = models.ForeignKey(Serviceman, on_delete=models.CASCADE, related_name='education_history')
+    level = models.CharField("Рівень освіти", max_length=20, choices=EducationLevel.choices)
+    institution_name = models.CharField("Назва навчального закладу", max_length=255)
+    graduation_year = models.PositiveIntegerField("Рік закінчення")
+    specialty = models.CharField("Спеціальність", max_length=255, blank=True)
+
+    class Meta:
+        verbose_name = "Освіта"
+        verbose_name_plural = "Освіта"
+        ordering = ['-graduation_year']
+
+
+class FamilyMember(models.Model):
+    """Член сім'ї військовослужбовця (нова модель)"""
+    class RelationshipType(models.TextChoices):
+        WIFE = 'WIFE', 'Дружина'
+        HUSBAND = 'HUSBAND', 'Чоловік'
+        SON = 'SON', 'Син'
+        DAUGHTER = 'DAUGHTER', 'Донька'
+        FATHER = 'FATHER', 'Батько'
+        MOTHER = 'MOTHER', 'Мати'
+        OTHER = 'OTHER', 'Інше'
+
+    serviceman = models.ForeignKey(Serviceman, on_delete=models.CASCADE, related_name='family_members')
+    relationship = models.CharField("Ступінь споріднення", max_length=20, choices=RelationshipType.choices)
+    last_name = models.CharField("Прізвище", max_length=100)
+    first_name = models.CharField("Ім'я", max_length=100)
+    middle_name = models.CharField("По батькові", max_length=100, blank=True)
+    date_of_birth = models.DateField("Дата народження")
+    address = models.CharField("Адреса проживання", max_length=255, blank=True)
+
+    class Meta:
+        verbose_name = "Член сім'ї"
+        verbose_name_plural = "Члени сім'ї"
+
+    @property
+    def full_name(self):
+        return f"{self.last_name} {self.first_name} {self.middle_name}".strip()
+
 
 class Contract(models.Model):
     """Контракт військовослужбовця"""
@@ -124,3 +194,8 @@ class PositionHistory(models.Model):
 
     def __str__(self):
         return f"{self.serviceman} - {self.position.name} ({self.start_date})"
+
+    def clean(self):
+        # Перевірка, що дата закінчення не раніше дати початку
+        if self.end_date and self.end_date < self.start_date:
+            raise ValidationError('Дата звільнення з посади не може бути раніше дати призначення.')
