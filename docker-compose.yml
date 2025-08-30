@@ -1,12 +1,33 @@
 version: '3.8'
 
 services:
+  web:
+    build: .
+    container_name: django_app
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    environment:
+      - DEBUG=0
+      - DATABASE_URL=postgresql://personnel_user:strongpassword@db:5432/personnel_db
+    depends_on:
+      - db
+    restart: unless-stopped
+    command: >
+      sh -c "python manage.py collectstatic --noinput &&
+             python manage.py migrate &&
+             gunicorn --bind 0.0.0.0:8000 personnel_accounting.wsgi:application"
+
+
   db:
     image: postgres:17-alpine
     container_name: asoos_postgres_db
     restart: always
     volumes:
-      - ./.postgres_data:/var/lib/postgresql/data/
+      - ./.postgres_d:/var/lib/postgresql/data/
     environment:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
@@ -18,3 +39,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:
