@@ -14,18 +14,24 @@ RUN apt-get update \
         postgresql-client \
         build-essential \
         libpq-dev \
+        netcat-openbsd \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # Копіюємо та встановлюємо Python залежності
 COPY requirements.txt .
 RUN pip install --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt
+    && pip install --no-cache-dir -r requirements.txt \
+    && pip install gunicorn
+
+# Копіюємо entrypoint скрипт
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # Копіюємо код проекту
 COPY . .
 
-# Створюємо директорії для статичних файлів
+# Створюємо директорії для статичних файлів та медіа
 RUN mkdir -p /app/staticfiles /app/media
 
 # Створюємо непривілейованого користувача
@@ -36,5 +42,8 @@ USER appuser
 # Відкриваємо порт
 EXPOSE 8000
 
+# Використовуємо entrypoint для ініціалізації
+ENTRYPOINT ["/entrypoint.sh"]
+
 # Команда за замовчуванням
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "your_project.wsgi:application"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "120", "personnel_accounting.wsgi:application"]

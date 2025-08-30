@@ -1,9 +1,32 @@
 version: '3.8'
 
 services:
+  # База даних PostgreSQL
+  db:
+    image: postgres:17-alpine
+    container_name: asoos_postgres_db
+    restart: always
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: personnel_db
+      POSTGRES_USER: personnel_user
+      POSTGRES_PASSWORD: strongpassword
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U personnel_user -d personnel_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - asoos_network
+
+  # Django веб-додаток
   web:
     build: .
     container_name: django_app
+    restart: always
     ports:
       - "8000:8000"
     volumes:
@@ -11,36 +34,62 @@ services:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
     environment:
-      - DEBUG=0
-      - DATABASE_URL=postgresql://personnel_user:strongpassword@db:5432/personnel_db
+      # Django налаштування
+      SECRET_KEY: your-super-secret-key-goes-here-change-in-production
+      DEBUG: 1
+      ALLOWED_HOSTS: localhost,127.0.0.1,0.0.0.0
+
+      # База даних (використовуємо ім'я сервісу як хост)
+      DB_NAME: personnel_db
+      DB_USER: personnel_user
+      DB_PASSWORD: strongpassword
+      DB_HOST: db
+      DB_PORT: 5432
+
+      # Інші налаштування
+      DJANGO_SETTINGS_MODULE: personnel_accounting.settings.docker
     depends_on:
-      - db
-    restart: unless-stopped
+      db:
+        condition: service_healthy
+    networks:
+      - asoos_network
     command: >
-      sh -c "python manage.py collectstatic --noinput &&
-             python manage.py migrate &&
-             gunicorn --bind 0.0.0.0:8000 personnel_accounting.wsgi:application"
+      sh -c "
+        echo 'Waiting for database...' &&
+        python manage.py migrate --noinput &&
+        python manage.py collectstatic --noinput &&
+        echo 'Creating superuser if not exists...' &&
+        python manage.py shell -c \"from django.contrib.auth import get_user_model; User = get_user_model(); User.objects.filter(username='admin').exists() or User.objects.create_superuser('admin', 'admin@example.com', 'admin123')\" &&
+        echo 'Starting server...' &&
+        gunicorn --bind 0.0.0.0:8000 --workers 3 --timeout 120 personnel_accounting.wsgi:application
+      "
 
-
-  db:
-    image: postgres:17-alpine
-    container_name: asoos_postgres_db
+  # Nginx для продакшн (опціонально)
+  nginx:
+    image: nginx:alpine
+    container_name: nginx_server
     restart: always
-    volumes:
-      - ./.postgres_d:/var/lib/postgresql/data/
-    environment:
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "${DB_PORT}:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - static_volume:/static:ro
+      - media_volume:/media:ro
+    depends_on:
+      - web
+    networks:
+      - asoos_network
 
+# Volumes для збереження даних
 volumes:
   postgres_data:
+    driver: local
   static_volume:
+    driver: local
   media_volume:
+    driver: local
+
+# Мережа для комунікації між контейнерами
+networks:
+  asoos_network:
+    driver: bridge

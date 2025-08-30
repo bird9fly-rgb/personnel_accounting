@@ -1,166 +1,172 @@
-.PHONY: help up down logs install run migrate makemigrations superuser shell test fresh-start load-test-data load-fixtures quick-start
+.PHONY: help docker-build docker-up docker-down docker-logs docker-shell docker-migrate docker-test docker-clean docker-restart docker-exec
 
-# Використовуємо .env файл для змінних
-include .env
-export
-
+# Docker команди
 help:
-	@echo "Доступні команди для управління проєктом АСООС 'ОБРІГ':"
+	@echo "🐳 DOCKER КОМАНДИ ДЛЯ АСООС 'ОБРІГ':"
 	@echo ""
-	@echo "  === Основні команди ==="
-	@echo "  make quick-start    - 🚀 ШВИДКИЙ СТАРТ: запускає БД, міграції, створює адміна і тестові дані."
-	@echo "  make up             - Запустити контейнер з базою даних у фоновому режимі."
-	@echo "  make down           - Зупинити контейнер з базою даних."
-	@echo "  make logs           - Переглянути логи бази даних в реальному часі."
-	@echo "  make install        - Встановити залежності Python з requirements.txt."
-	@echo "  make run            - Запустити локальний сервер розробки Django."
+	@echo "  === Основні Docker команди ==="
+	@echo "  make docker-build   - 🔨 Збудувати Docker образи"
+	@echo "  make docker-up      - 🚀 Запустити всі контейнери"
+	@echo "  make docker-down    - 🛑 Зупинити всі контейнери"
+	@echo "  make docker-restart - 🔄 Перезапустити контейнери"
+	@echo "  make docker-logs    - 📜 Переглянути логи"
+	@echo "  make docker-clean   - 🧹 Видалити контейнери та volumes"
 	@echo ""
-	@echo "  === Робота з БД та міграціями ==="
-	@echo "  make migrate        - Застосувати міграції до бази даних."
-	@echo "  make makemigrations - Створити нові файли міграцій на основі змін у моделях."
-	@echo "  make superuser      - Створити нового суперкористувача (адміністратора)."
-	@echo "  make shell          - Запустити розширену оболонку Django (shell_plus)."
+	@echo "  === Робота з Django в Docker ==="
+	@echo "  make docker-shell   - 🐚 Відкрити shell в Django контейнері"
+	@echo "  make docker-migrate - 🔄 Запустити міграції"
+	@echo "  make docker-static  - 📦 Зібрати статичні файли"
+	@echo "  make docker-test    - 🧪 Запустити тести"
+	@echo "  make docker-exec cmd='...' - 💻 Виконати довільну команду"
 	@echo ""
-	@echo "  === Тестові дані ==="
-	@echo "  make load-test-data - 📦 Завантажити повний набір тестових даних (підрозділи, персонал, контракти)."
-	@echo "  make load-fixtures  - 📋 Завантажити базові дані з fixtures (звання, ВОС)."
-	@echo ""
-	@echo "  === Розробка та тестування ==="
-	@echo "  make test           - Запустити тести для проєкту."
-	@echo "  make fresh-start    - 🔥 ПОВНІСТЮ ВИДАЛИТИ БАЗУ ДАНИХ та почати з нуля."
-	@echo ""
-	@echo "  === Корисні команди ==="
-	@echo "  make check-deploy   - Перевірити готовність проєкту до deployment."
-	@echo "  make show-urls      - Показати всі доступні URL проєкту."
-	@echo "  make db-shell       - Підключитися до консолі PostgreSQL."
+	@echo "  === Управління даними ==="
+	@echo "  make docker-loaddata    - 📋 Завантажити початкові дані"
+	@echo "  make docker-createsuperuser - 👤 Створити суперкористувача"
+	@echo "  make docker-backup  - 💾 Створити backup бази даних"
+	@echo "  make docker-restore - 📥 Відновити базу даних з backup"
 	@echo ""
 
-up:
-	@echo "🚀 Запускаю контейнер з базою даних PostgreSQL..."
+# Збудувати Docker образи
+docker-build:
+	@echo "🔨 Будую Docker образи..."
+	docker-compose build
+
+# Запустити всі контейнери
+docker-up:
+	@echo "🚀 Запускаю всі контейнери..."
 	docker-compose up -d
-	@echo "✅ База даних запущена. Очікую готовності..."
-	@sleep 3
+	@echo "✅ Контейнери запущені!"
+	@echo ""
+	@echo "📌 Доступні адреси:"
+	@echo "  Django додаток: http://localhost:8000"
+	@echo "  Nginx (якщо увімкнено): http://localhost"
+	@echo "  PostgreSQL: localhost:5432"
+	@echo ""
+	@echo "📊 Адмін панель: http://localhost:8000/admin/"
+	@echo "  Логін: admin"
+	@echo "  Пароль: admin123"
 
-down:
-	@echo "🛑 Зупиняю контейнер з базою даних..."
+# Зупинити всі контейнери
+docker-down:
+	@echo "🛑 Зупиняю всі контейнери..."
 	docker-compose down
 
-logs:
-	@echo "📜 Переглядаю логи бази даних..."
+# Перезапустити контейнери
+docker-restart:
+	@echo "🔄 Перезапускаю контейнери..."
+	docker-compose restart
+
+# Переглянути логи
+docker-logs:
+	@echo "📜 Показую логи (Ctrl+C для виходу)..."
+	docker-compose logs -f
+
+# Логи конкретного сервісу
+docker-logs-web:
+	docker-compose logs -f web
+
+docker-logs-db:
 	docker-compose logs -f db
 
-install:
-	@echo "📦 Встановлюю залежності Python..."
-	pip install -r requirements.txt
-	@echo "✅ Залежності встановлено"
+# Відкрити shell в Django контейнері
+docker-shell:
+	@echo "🐚 Відкриваю Django shell..."
+	docker-compose exec web python manage.py shell_plus --print-sql
 
-run:
-	@echo "🌐 Запускаю сервер розробки Django на http://127.0.0.1:8000/"
-	@echo "📊 Адмін панель: http://127.0.0.1:8000/admin/"
-	@echo "👥 Особовий склад: http://127.0.0.1:8000/"
-	@echo "🏢 Підрозділи: http://127.0.0.1:8000/staffing/"
-	python manage.py runserver
+# Відкрити bash в контейнері
+docker-bash:
+	@echo "💻 Відкриваю bash в контейнері..."
+	docker-compose exec web /bin/bash
 
-migrate:
-	@echo "🔄 Застосовую міграції бази даних..."
-	python manage.py migrate
-	@echo "✅ Міграції застосовано"
+# Запустити міграції
+docker-migrate:
+	@echo "🔄 Запускаю міграції..."
+	docker-compose exec web python manage.py makemigrations
+	docker-compose exec web python manage.py migrate
 
-makemigrations:
-	@echo "📝 Створюю нові міграції..."
-	python manage.py makemigrations
-	@echo "✅ Міграції створено"
+# Зібрати статичні файли
+docker-static:
+	@echo "📦 Збираю статичні файли..."
+	docker-compose exec web python manage.py collectstatic --noinput
 
-superuser:
-	@echo "👤 Створення суперкористувача..."
-	@echo "Використовуйте наступні дані для тестування:"
-	@echo "  Username: admin"
-	@echo "  Password: admin123"
-	@echo "  Email: admin@mil.gov.ua"
-	python manage.py createsuperuser
-
-shell:
-	@echo "🐚 Запускаю Django shell..."
-	python manage.py shell_plus --print-sql
-
-test:
+# Запустити тести
+docker-test:
 	@echo "🧪 Запускаю тести..."
-	python manage.py test
+	docker-compose exec web python manage.py test
 
-fresh-start:
-	@echo "🔥 УВАГА! Це видалить всі дані з бази даних!"
-	@read -p "Ви впевнені? (y/N): " confirm && [ "$$confirm" = "y" ] || exit 1
-	@echo "🗑️ Видаляю контейнер та дані..."
-	docker-compose down -v
-	@echo "✅ Дані видалено. Запускаю нову базу даних..."
-	@make up
-	@sleep 5
-	@echo "📝 Застосовую міграції..."
-	@make migrate
-	@echo "✅ База даних готова до роботи!"
+# Виконати довільну команду в контейнері
+docker-exec:
+	docker-compose exec web $(cmd)
 
-load-test-data:
+# Створити суперкористувача
+docker-createsuperuser:
+	@echo "👤 Створення суперкористувача..."
+	docker-compose exec web python manage.py createsuperuser
+
+# Завантажити початкові дані
+docker-loaddata:
+	@echo "📋 Завантажую початкові дані..."
+	docker-compose exec web python manage.py loaddata apps/personnel/fixtures/initial_data.json
+
+# Завантажити тестові дані
+docker-loadtestdata:
 	@echo "📦 Завантажую тестові дані..."
-	@echo "Це створить:"
-	@echo "  • Військові звання (21 звання)"
-	@echo "  • Військово-облікові спеціальності (20 ВОС)"
-	@echo "  • Структуру підрозділів (бригада з батальйонами, ротами, взводами)"
-	@echo "  • Штатні посади (~500 посад)"
-	@echo "  • Військовослужбовців (70% укомплектованість)"
-	@echo "  • Контракти та історію служби"
-	@echo ""
-	@echo "⏳ Це може зайняти кілька хвилин..."
-	python manage.py create_test_data
-	@echo "✅ Тестові дані завантажено!"
+	docker-compose exec web python manage.py create_test_data
 
-load-fixtures:
-	@echo "📋 Завантажую базові дані з fixtures..."
-	@mkdir -p apps/personnel/fixtures
-	@echo "Створюю fixtures для звань та ВОС..."
-	python manage.py loaddata apps/personnel/fixtures/initial_data.json
-	@echo "✅ Fixtures завантажено"
+# Створити backup бази даних
+docker-backup:
+	@echo "💾 Створюю backup бази даних..."
+	@mkdir -p backups
+	docker-compose exec db pg_dump -U personnel_user personnel_db > backups/backup_$(shell date +%Y%m%d_%H%M%S).sql
+	@echo "✅ Backup збережено в backups/"
 
-quick-start:
-	@echo "🚀 ШВИДКИЙ СТАРТ ПРОЄКТУ АСООС 'ОБРІГ'"
-	@echo "======================================="
-	@echo "Крок 1: Запуск бази даних..."
-	@make up
-	@echo ""
-	@echo "Крок 2: Встановлення залежностей..."
-	@make install
-	@echo ""
-	@echo "Крок 3: Застосування міграцій..."
-	@make migrate
-	@echo ""
-	@echo "Крок 4: Створення адміністратора..."
-	@echo "Створюю користувача admin з паролем admin123..."
-	@echo "from django.contrib.auth import get_user_model; User = get_user_model(); User.objects.create_superuser('admin', 'admin@mil.gov.ua', 'admin123') if not User.objects.filter(username='admin').exists() else None" | python manage.py shell
-	@echo ""
-	@echo "Крок 5: Завантаження тестових даних..."
-	@make load-test-data
-	@echo ""
-	@echo "======================================="
+# Відновити базу даних з backup
+docker-restore:
+	@echo "📥 Відновлюю базу даних з backup..."
+	@echo "Доступні backup файли:"
+	@ls -la backups/*.sql
+	@read -p "Введіть ім'я файлу для відновлення: " filename; \
+	docker-compose exec -T db psql -U personnel_user personnel_db < backups/$$filename
+
+# Повністю очистити Docker середовище
+docker-clean:
+	@echo "🧹 УВАГА! Це видалить всі контейнери, образи та дані!"
+	@read -p "Ви впевнені? (y/N): " confirm && [ "$$confirm" = "y" ] || exit 1
+	docker-compose down -v
+	docker system prune -af
+	@echo "✅ Docker середовище очищено"
+
+# Швидкий старт з нуля
+docker-fresh-start:
+	@echo "🚀 ШВИДКИЙ СТАРТ ПРОЄКТУ В DOCKER"
+	@echo "=================================="
+	@make docker-clean
+	@make docker-build
+	@make docker-up
+	@sleep 5
+	@make docker-migrate
+	@make docker-loadtestdata
+	@echo "=================================="
 	@echo "✅ ПРОЄКТ ГОТОВИЙ ДО РОБОТИ!"
-	@echo "======================================="
-	@echo ""
-	@echo "📌 Облікові записи для входу:"
-	@echo "  Адміністратор:   admin / admin123"
-	@echo "  Кадровий офіцер: hr_officer / hr123"
-	@echo "  Командир:        commander / commander123"
-	@echo ""
-	@echo "🌐 Для запуску сервера виконайте: make run"
-	@echo "📊 Адмін панель: http://127.0.0.1:8000/admin/"
-	@echo ""
+	@echo "=================================="
+	@echo "🌐 Відкрийте: http://localhost:8000"
+	@echo "📊 Адмін: http://localhost:8000/admin/"
+	@echo "👤 Логін: admin / admin123"
 
-check-deploy:
-	@echo "🔍 Перевірка готовності до deployment..."
-	python manage.py check --deploy
-	@echo "✅ Перевірка завершена"
+# Показати статус контейнерів
+docker-ps:
+	@echo "📊 Статус контейнерів:"
+	docker-compose ps
 
-show-urls:
-	@echo "📍 Доступні URL адреси:"
-	python manage.py show_urls
+# Перевірити здоров'я контейнерів
+docker-health:
+	@echo "🏥 Перевірка здоров'я контейнерів:"
+	docker-compose ps
+	@echo ""
+	@echo "🔍 Перевірка з'єднання з БД:"
+	docker-compose exec web python -c "from django.db import connection; cursor = connection.cursor(); cursor.execute('SELECT 1'); print('✅ База даних працює!')"
 
-db-shell:
+# Інтерактивна консоль PostgreSQL
+docker-dbshell:
 	@echo "🗄️ Підключаюся до PostgreSQL..."
-	docker exec -it asoos_postgres_db psql -U $(DB_USER) -d $(DB_NAME)
+	docker-compose exec db psql -U personnel_user -d personnel_db
